@@ -1,23 +1,22 @@
 from pydantic_settings import BaseSettings
-from typing import Optional
+from typing import List
 
 class Settings(BaseSettings):
-    PROJECT_NAME: str = "Flow CMMS"
-    API_V1_STR: str = "/api/v1"
-    DATABASE_URL: str = "postgresql://user:password@localhost:5432/cmms_db"
+    PROJECT_NAME: str = "Flow CMMS - Medical Equipment Management System"
+    DATABASE_URL: str = "postgresql://cmms_user:cmms_password@db:5432/flow_cmms"
     SECRET_KEY: str = "your-secret-key-here"
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
-    TELEGRAM_BOT_TOKEN: Optional[str] = None
-    OPENAI_API_KEY: Optional[str] = None
-    GEMINI_API_KEY: Optional[str] = None
-    LM_STUDIO_API_URL: Optional[str] = "http://localhost:1234/v1"
-    OLLAMA_API_URL: Optional[str] = "http://localhost:11434/api"
+    ALLOWED_ORIGINS: List[str] = ["*"]
     
-    # Configurações adicionais para o sistema
-    MAX_INVENTORY_ALERTS: int = 5
+    # AI Integration Settings
+    AI_PROVIDER: str = "gemini"  # gemini, openai, lmstudio, ollama
+    AI_API_KEY: str = ""
+    
+    # Telegram Settings
+    TELEGRAM_BOT_TOKEN: str = ""
     
     class Config:
-        case_sensitive = True
+        env_file = ".env"
 
 settings = Settings()

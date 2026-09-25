@@ -1,53 +1,38 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
-from ...schemas.inventory import InventoryItemCreate, InventoryItemUpdate, InventoryItem
-from ...db.session import get_db
-from ...models.inventory import InventoryItem as InventoryModel
+from typing import List
+from backend.app import models, schemas
+from backend.app.database import get_db
 
 router = APIRouter()
 
-@router.post("/", response_model=InventoryItem)
-def create_inventory_item(
-    item: InventoryItemCreate,
-    db: Session = Depends(get_db)
-):
-    db_item = InventoryModel(**item.dict())
+@router.get("/", response_model=List[schemas.InventoryItem])
+def read_inventory(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
+    inventory = db.query(models.InventoryItem).offset(skip).limit(limit).all()
+    return inventory
+
+@router.post("/", response_model=schemas.InventoryItem)
+def create_inventory_item(item: schemas.InventoryItemCreate, db: Session = Depends(get_db)):
+    db_item = models.InventoryItem(**item.dict())
     db.add(db_item)
     db.commit()
     db.refresh(db_item)
     return db_item
 
-@router.get("/{item_id}", response_model=InventoryItem)
-def read_inventory_item(
-    item_id: int,
-    db: Session = Depends(get_db)
-):
-    db_item = db.query(InventoryModel).filter(InventoryModel.id == item_id).first()
-    if not db_item:
+@router.get("/{item_id}", response_model=schemas.InventoryItem)
+def read_inventory_item(item_id: int, db: Session = Depends(get_db)):
+    db_item = db.query(models.InventoryItem).filter(models.InventoryItem.id == item_id).first()
+    if db_item is None:
         raise HTTPException(status_code=404, detail="Inventory item not found")
     return db_item
 
-@router.get("/", response_model=list[InventoryItem])
-def read_inventory_items(
-    skip: int = 0,
-    limit: int = 100,
-    db: Session = Depends(get_db)
-):
-    items = db.query(InventoryModel).offset(skip).limit(limit).all()
-    return items
-
-@router.put("/{item_id}", response_model=InventoryItem)
-def update_inventory_item(
-    item_id: int,
-    item: InventoryItemUpdate,
-    db: Session = Depends(get_db)
-):
-    db_item = db.query(InventoryModel).filter(InventoryModel.id == item_id).first()
-    if not db_item:
+@router.put("/{item_id}", response_model=schemas.InventoryItem)
+def update_inventory_item(item_id: int, item: schemas.InventoryItemUpdate, db: Session = Depends(get_db)):
+    db_item = db.query(models.InventoryItem).filter(models.InventoryItem.id == item_id).first()
+    if db_item is None:
         raise HTTPException(status_code=404, detail="Inventory item not found")
     
-    update_data = item.dict(exclude_unset=True)
-    for key, value in update_data.items():
+    for key, value in item.dict(exclude_unset=True).items():
         setattr(db_item, key, value)
     
     db.commit()
@@ -55,14 +40,34 @@ def update_inventory_item(
     return db_item
 
 @router.delete("/{item_id}")
-def delete_inventory_item(
-    item_id: int,
-    db: Session = Depends(get_db)
-):
-    db_item = db.query(InventoryModel).filter(InventoryModel.id == item_id).first()
-    if not db_item:
+def delete_inventory_item(item_id: int, db: Session = Depends(get_db)):
+    db_item = db.query(models.InventoryItem).filter(models.InventoryItem.id == item_id).first()
+    if db_item is None:
         raise HTTPException(status_code=404, detail="Inventory item not found")
     
     db.delete(db_item)
     db.commit()
     return {"message": "Inventory item deleted successfully"}
+
+@router.get("/low-stock")
+def get_low_stock_items(db: Session = Depends(get_db)):
+    low_stock_items = db.query(models.InventoryItem).filter(
+        models.InventoryItem.quantity <= models.InventoryItem.min_quantity
+    ).all()
+    return low_stock_items
+
+@router.post("/{item_id}/adjust-stock")
+def adjust_stock(item_id: int, adjustment: schemas.StockAdjustment, db: Session = Depends(get_db)):
+    db_item = db.query(models.InventoryItem).filter(models.InventoryItem.id == item_id).first()
+    if db_item is None:
+        raise HTTPException(status_code=404, detail="Inventory item not found")
+    
+    db_item.quantity += adjustment.adjustment_value
+    
+    # Update last_updated
+    from datetime import datetime
+    db_item.last_updated = datetime.utcnow()
+    
+    db.commit()
+    db.refresh(db_item)
+    return db_item

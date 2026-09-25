@@ -1,103 +1,70 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
-from ...schemas.report import ReportData
-from ...db.session import get_db
-from ...models.asset import Asset
-from ...models.maintenance import MaintenanceRecord
-from datetime import datetime
+from typing import List
+from backend.app import models, schemas
+from backend.app.database import get_db
 
 router = APIRouter()
 
-@router.get("/dashboard", response_model=ReportData)
-def get_dashboard_data(
-    db: Session = Depends(get_db)
-):
-    # Get total assets
-    total_assets = db.query(Asset).count()
-    
-    # Get active assets
-    active_assets = db.query(Asset).filter(Asset.status == "active").count()
-    
-    # Get maintenance records
-    total_maintenances = db.query(MaintenanceRecord).count()
-    
-    # Get pending maintenances
-    pending_maintenances = db.query(MaintenanceRecord).filter(MaintenanceRecord.status == "pending").count()
-    
-    # Calculate uptime (simplified - would need more complex logic in real implementation)
-    uptime = 95.0  # percentage
-    
-    # Calculate MTTR (Mean Time To Repair) - simplified
-    mttr = 4.5  # hours
-    
-    # Calculate MTBF (Mean Time Between Failures) - simplified  
-    mtbf = 120.0  # hours
-    
-    return ReportData(
-        total_assets=total_assets,
-        active_assets=active_assets,
-        total_maintenances=total_maintenances,
-        pending_maintenances=pending_maintenances,
-        uptime=uptime,
-        mttr=mttr,
-        mtbf=mtbf
-    )
+@router.get("/", response_model=List[schemas.Report])
+def read_reports(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
+    reports = db.query(models.Report).offset(skip).limit(limit).all()
+    return reports
 
-@router.get("/maintenance-history/{asset_id}")
-def get_maintenance_history(
-    asset_id: int,
-    db: Session = Depends(get_db)
-):
-    history = db.query(MaintenanceRecord)\
-        .filter(MaintenanceRecord.asset_id == asset_id)\
-        .order_by(MaintenanceRecord.created_at.desc())\
-        .all()
+@router.post("/", response_model=schemas.Report)
+def create_report(report: schemas.ReportCreate, db: Session = Depends(get_db)):
+    db_report = models.Report(**report.dict())
+    db.add(db_report)
+    db.commit()
+    db.refresh(db_report)
+    return db_report
+
+@router.get("/{report_id}", response_model=schemas.Report)
+def read_report_id(report_id: int, db: Session = Depends(get_db)):
+    db_report = db.query(models.Report).filter(models.Report.id == report_id).first()
+    if db_report is None:
+        raise HTTPException(status_code=404, detail="Report not found")
+    return db_report
+
+@router.put("/{report_id}", response_model=schemas.Report)
+def update_report(report_id: int, report: schemas.ReportUpdate, db: Session = Depends(get_db)):
+    db_report = db.query(models.Report).filter(models.Report.id == report_id).first()
+    if db_report is None:
+        raise HTTPException(status_code=404, detail="Report not found")
     
+    for key, value in report.dict(exclude_unset=True).items():
+        setattr(db_report, key, value)
+    
+    db.commit()
+    db.refresh(db_report)
+    return db_report
+
+@router.delete("/{report_id}")
+def delete_report(report_id: int, db: Session = Depends(get_db)):
+    db_report = db.query(models.Report).filter(models.Report.id == report_id).first()
+    if db_report is None:
+        raise HTTPException(status_code=404, detail="Report not found")
+    
+    db.delete(db_report)
+    db.commit()
+    return {"message": "Report deleted successfully"}
+
+@router.get("/maintenance-history/{equipment_id}")
+def get_maintenance_history(equipment_id: int, db: Session = Depends(get_db)):
+    history = db.query(models.Maintenance).filter(models.Maintenance.equipment_id == equipment_id).all()
     return history
 
 @router.get("/inventory-report")
-def get_inventory_report(
-    db: Session = Depends(get_db)
-):
-    from ...models.inventory import InventoryItem
+def get_inventory_report(db: Session = Depends(get_db)):
+    # Get inventory data
+    inventory_items = db.query(models.InventoryItem).all()
     
-    items = db.query(InventoryItem)\
-        .filter(InventoryItem.is_active == True)\
-        .order_by(InventoryItem.quantity.asc())\
-        .all()
-    
-    return items
-
-@router.get("/maintenance-summary")
-def get_maintenance_summary(
-    db: Session = Depends(get_db)
-):
-    # Get maintenance summary by type
-    corrective_maintenances = db.query(MaintenanceRecord)\
-        .filter(MaintenanceRecord.maintenance_type == "corrective")\
-        .count()
-    
-    preventive_maintenances = db.query(MaintenanceRecord)\
-        .filter(MaintenanceRecord.maintenance_type == "preventive")\
-        .count()
-    
-    # Get status summary
-    pending_maintenances = db.query(MaintenanceRecord)\
-        .filter(MaintenanceRecord.status == "pending")\
-        .count()
-        
-    in_progress_maintenances = db.query(MaintenanceRecord)\
-        .filter(MaintenanceRecord.status == "in_progress")\
-        .count()
-        
-    completed_maintenances = db.query(MaintenanceRecord)\
-        .filter(MaintenanceRecord.status == "completed")\
-        .count()
+    # Calculate totals
+    total_items = len(inventory_items)
+    total_value = sum(item.price * item.quantity for item in inventory_items if item.price and item.quantity)
     
     return {
-        "corrective_maintenances": corrective_maintenances,
-        "preventive_maintenances": preventive_maintenances,
-        "pending_maintenances": pending_maintenances,
-        "in_progress_maintenances": in_progress_maintenances,
-        "completed_maintenances": completed_maintenances
+        "total_items": total_items,
+        "total_value": total_value,
+        "items": inventory_items
     }
