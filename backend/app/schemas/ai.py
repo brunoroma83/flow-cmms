@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 from typing import Optional
 
 class AIRequest(BaseModel):
@@ -12,5 +12,4 @@ class AIResponse(BaseModel):
     provider: str
     prompt: str
     
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)

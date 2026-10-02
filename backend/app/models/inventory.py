@@ -1,6 +1,6 @@
 from sqlalchemy import Column, Integer, String, DateTime, Float, Text
 from datetime import datetime
-from backend.app.models.base import Base
+from app.models.base import Base
 
 class InventoryItem(Base):
     __tablename__ = "inventory_items"

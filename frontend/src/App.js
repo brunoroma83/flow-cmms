@@ -1,4 +1,6 @@
 import React, { useState } from 'react';
+import { AuthProvider, useAuth } from './context/AuthContext';
+import Login from './components/auth/Login';
 import Header from './components/layout/Header';
 import Sidebar from './components/layout/Sidebar';
 import Dashboard from './components/dashboard/Dashboard';
@@ -8,8 +10,21 @@ import Inventory from './components/inventory/Inventory';
 import Reports from './components/reports/Reports';
 import './App.css';
 
-function App() {
+function MainLayout() {
+  const { isAuthenticated, loading } = useAuth();
   const [activeTab, setActiveTab] = useState('dashboard');
+
+  if (loading) {
+    return (
+      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', background: '#f8fafc' }}>
+        <h2>Carregando Flow CMMS...</h2>
+      </div>
+    );
+  }
+
+  if (!isAuthenticated) {
+    return <Login />;
+  }
 
   const renderContent = () => {
     switch (activeTab) {
@@ -38,6 +53,14 @@ function App() {
         </main>
       </div>
     </div>
+  );
+}
+
+function App() {
+  return (
+    <AuthProvider>
+      <MainLayout />
+    </AuthProvider>
   );
 }
 

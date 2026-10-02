@@ -1,8 +1,8 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from typing import List
-from backend.app import models, schemas
-from backend.app.database import get_db
+from app import models, schemas
+from app.database import get_db
 
 router = APIRouter()
 
@@ -13,7 +13,7 @@ def read_traceability_records(skip: int = 0, limit: int = 100, db: Session = Dep
 
 @router.post("/", response_model=schemas.TraceabilityRecord)
 def create_traceability_record(record: schemas.TraceabilityRecordCreate, db: Session = Depends(get_db)):
-    db_record = models.TraceabilityRecord(**record.dict())
+    db_record = models.TraceabilityRecord(**record.model_dump())
     db.add(db_record)
     db.commit()
     db.refresh(db_record)
@@ -32,7 +32,7 @@ def update_traceability_record(record_id: int, record: schemas.TraceabilityRecor
     if db_record is None:
         raise HTTPException(status_code=404, detail="Traceability record not found")
     
-    for key, value in record.dict(exclude_unset=True).items():
+    for key, value in record.model_dump(exclude_unset=True).items():
         setattr(db_record, key, value)
     
     db.commit()

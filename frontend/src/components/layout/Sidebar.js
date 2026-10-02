@@ -4,9 +4,9 @@ import './Sidebar.css';
 const Sidebar = ({ activeTab, setActiveTab }) => {
   const menuItems = [
     { id: 'dashboard', label: 'Dashboard', icon: '📊' },
-    { id: 'assets', label: 'Ativos', icon: '💻' },
-    { id: 'maintenance', label: 'Manutenção', icon: '🔧' },
-    { id: 'inventory', label: 'Estoque', icon: '📦' },
+    { id: 'assets', label: 'Ativos Médicos', icon: '💻' },
+    { id: 'maintenance', label: 'Manutenção (OS)', icon: '🔧' },
+    { id: 'inventory', label: 'Estoque de Insumos', icon: '📦' },
     { id: 'reports', label: 'Relatórios', icon: '📋' },
   ];
 
@@ -17,6 +17,7 @@ const Sidebar = ({ activeTab, setActiveTab }) => {
           {menuItems.map((item) => (
             <li key={item.id}>
               <button
+                type="button"
                 className={`nav-item ${activeTab === item.id ? 'active' : ''}`}
                 onClick={() => setActiveTab(item.id)}
               >
@@ -27,6 +28,11 @@ const Sidebar = ({ activeTab, setActiveTab }) => {
           ))}
         </ul>
       </nav>
+
+      <div className="sidebar-footer">
+        <div className="system-version">Flow CMMS v1.2</div>
+        <div className="system-subtitle">Gestão Hospitalar</div>
+      </div>
     </aside>
   );
 };

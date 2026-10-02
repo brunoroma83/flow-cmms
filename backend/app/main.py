@@ -1,9 +1,9 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from backend.app.api.endpoints import equipment, maintenance, dashboard, auth, reports, inventory, traceability
-from backend.app.core.config import settings
-from backend.app.db.session import engine
-from backend.app.models.base import Base
+from app.api.endpoints import equipment, maintenance, dashboard, auth, reports, inventory, traceability
+from app.core.config import settings
+from app.db.session import engine
+from app.models.base import Base
 
 # Create database tables
 Base.metadata.create_all(bind=engine)

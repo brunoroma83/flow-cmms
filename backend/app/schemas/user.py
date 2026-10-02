@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 from typing import Optional
 
 class UserBase(BaseModel):
@@ -22,8 +22,7 @@ class User(UserBase):
     id: int
     is_active: bool
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 class LoginForm(BaseModel):
     username: str

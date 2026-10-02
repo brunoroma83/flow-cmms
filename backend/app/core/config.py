@@ -1,4 +1,4 @@
-from pydantic_settings import BaseSettings
+from pydantic_settings import BaseSettings, SettingsConfigDict
 from typing import List
 
 class Settings(BaseSettings):
@@ -16,7 +16,6 @@ class Settings(BaseSettings):
     # Telegram Settings
     TELEGRAM_BOT_TOKEN: str = ""
     
-    class Config:
-        env_file = ".env"
+    model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
 settings = Settings()

@@ -1,8 +1,8 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from typing import List
-from backend.app import models, schemas
-from backend.app.database import get_db
+from app import models, schemas
+from app.database import get_db
 
 router = APIRouter()
 
@@ -13,7 +13,7 @@ def read_reports(skip: int = 0, limit: int = 100, db: Session = Depends(get_db))
 
 @router.post("/", response_model=schemas.Report)
 def create_report(report: schemas.ReportCreate, db: Session = Depends(get_db)):
-    db_report = models.Report(**report.dict())
+    db_report = models.Report(**report.model_dump())
     db.add(db_report)
     db.commit()
     db.refresh(db_report)
@@ -32,7 +32,7 @@ def update_report(report_id: int, report: schemas.ReportUpdate, db: Session = De
     if db_report is None:
         raise HTTPException(status_code=404, detail="Report not found")
     
-    for key, value in report.dict(exclude_unset=True).items():
+    for key, value in report.model_dump(exclude_unset=True).items():
         setattr(db_report, key, value)
     
     db.commit()

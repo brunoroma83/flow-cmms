@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 from datetime import datetime
 from typing import Optional
 
@@ -6,7 +6,9 @@ class EquipmentBase(BaseModel):
     name: str
     description: Optional[str] = None
     serial_number: str
-    category_id: Optional[int] = None
+    anvisa_register: Optional[str] = None
+    equipment_type: Optional[str] = None
+    category_id: Optional[int] = 1
     status: str = "active"
     purchase_date: Optional[datetime] = None
     warranty_end: Optional[datetime] = None
@@ -18,10 +20,12 @@ class EquipmentBase(BaseModel):
 class EquipmentCreate(EquipmentBase):
     pass
 
-class EquipmentUpdate(EquipmentBase):
+class EquipmentUpdate(BaseModel):
     name: Optional[str] = None
     description: Optional[str] = None
     serial_number: Optional[str] = None
+    anvisa_register: Optional[str] = None
+    equipment_type: Optional[str] = None
     category_id: Optional[int] = None
     status: Optional[str] = None
     purchase_date: Optional[datetime] = None
@@ -30,11 +34,12 @@ class EquipmentUpdate(EquipmentBase):
     manufacturer: Optional[str] = None
     model: Optional[str] = None
     specifications: Optional[str] = None
+    is_deleted: Optional[bool] = None
 
 class Equipment(EquipmentBase):
     id: int
+    is_deleted: bool = False
     created_at: datetime
     updated_at: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)

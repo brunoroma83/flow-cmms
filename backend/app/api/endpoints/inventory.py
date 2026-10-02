@@ -1,8 +1,8 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from typing import List
-from backend.app import models, schemas
-from backend.app.database import get_db
+from app import models, schemas
+from app.database import get_db
 
 router = APIRouter()
 
@@ -13,7 +13,7 @@ def read_inventory(skip: int = 0, limit: int = 100, db: Session = Depends(get_db
 
 @router.post("/", response_model=schemas.InventoryItem)
 def create_inventory_item(item: schemas.InventoryItemCreate, db: Session = Depends(get_db)):
-    db_item = models.InventoryItem(**item.dict())
+    db_item = models.InventoryItem(**item.model_dump())
     db.add(db_item)
     db.commit()
     db.refresh(db_item)
@@ -32,7 +32,7 @@ def update_inventory_item(item_id: int, item: schemas.InventoryItemUpdate, db: S
     if db_item is None:
         raise HTTPException(status_code=404, detail="Inventory item not found")
     
-    for key, value in item.dict(exclude_unset=True).items():
+    for key, value in item.model_dump(exclude_unset=True).items():
         setattr(db_item, key, value)
     
     db.commit()
