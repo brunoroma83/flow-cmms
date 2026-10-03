@@ -1,8 +1,9 @@
-# Sobreposição para desenvolvimento local. Não utilize em produção.
+# Sobreposição para desenvolvimento local (conecta ao PostgreSQL 17 central de Dev)
 services:
   backend:
     environment:
       APP_ENV: development
+      DATABASE_URL: postgresql://${CMMS_DB_USER:-flow_cmms_user}:${CMMS_DB_PASSWORD:-cmms_dev_password}@postgres:5432/${CMMS_DB_NAME:-flow_cmms_db}
     ports:
       - "8001:8000"
     volumes:
@@ -10,6 +11,8 @@ services:
       - ./pyproject.toml:/app/pyproject.toml
       - ./uv.lock:/app/uv.lock
     command: uvicorn backend.app.main:app --host 0.0.0.0 --port 8000 --reload
+    networks:
+      - dev_db_network
 
   frontend:
     environment:
@@ -21,10 +24,6 @@ services:
       - ./frontend:/app
       - /app/node_modules
 
-  db:
-    ports:
-      - "5434:5432"
-
   redis:
     ports:
       - "6379:6379"
@@ -32,3 +31,7 @@ services:
 networks:
   web_network:
     external: false
+  postgres_network:
+    external: false
+  dev_db_network:
+    external: true
