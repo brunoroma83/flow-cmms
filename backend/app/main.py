@@ -1,3 +1,4 @@
+from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.api.endpoints import equipment, maintenance, dashboard, auth, reports, inventory, traceability
@@ -5,10 +6,16 @@ from app.core.config import settings
 from app.db.session import engine
 from app.models.base import Base
 
-# Create database tables
-Base.metadata.create_all(bind=engine)
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Safely initialize DB tables on app startup
+    try:
+        Base.metadata.create_all(bind=engine)
+    except Exception as e:
+        print(f"⚠️ Warning: Database initialization on startup encountered an issue: {e}")
+    yield
 
-app = FastAPI(title=settings.PROJECT_NAME)
+app = FastAPI(title=settings.PROJECT_NAME, lifespan=lifespan)
 
 # Add CORS middleware
 app.add_middleware(
