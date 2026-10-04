@@ -1,4 +1,5 @@
 import os
+import sys
 from contextlib import asynccontextmanager
 from pathlib import Path
 from fastapi import FastAPI
@@ -13,9 +14,18 @@ from app.models.base import Base
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Safely initialize DB tables on app startup
+    # Safely initialize DB tables and seed default admin user / sample data on app startup
     try:
-        Base.metadata.create_all(bind=engine)
+        # Import init_db dynamically
+        backend_dir = Path(__file__).parent.parent
+        if str(backend_dir) not in sys.path:
+            sys.path.insert(0, str(backend_dir))
+        
+        try:
+            from init_db import init_db
+            init_db()
+        except ImportError:
+            Base.metadata.create_all(bind=engine)
     except Exception as e:
         print(f"⚠️ Warning: Database initialization on startup encountered an issue: {e}")
     yield
