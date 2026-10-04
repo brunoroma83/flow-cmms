@@ -52,7 +52,7 @@ async function request(endpoint, options = {}) {
 }
 
 export const api = {
-  // Auth
+  // Auth & Admin
   login: async (username, password) => {
     const data = await request('/api/auth/token', {
       method: 'POST',
@@ -70,6 +70,13 @@ export const api = {
     }
   },
   getCurrentUser: () => request('/api/auth/me'),
+  changePassword: (current_password, new_password) => request('/api/auth/change-password', {
+    method: 'POST',
+    body: JSON.stringify({ current_password, new_password })
+  }),
+  generateMCPToken: () => request('/api/auth/mcp-token', {
+    method: 'POST'
+  }),
   logout: () => {
     removeToken();
     removeUser();

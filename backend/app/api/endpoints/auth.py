@@ -15,12 +15,12 @@ def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(
     if not username:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid authentication credentials",
+            detail="Credenciais de autenticação inválidas",
             headers={"WWW-Authenticate": "Bearer"},
         )
     user = db.query(models.User).filter(models.User.username == username).first()
     if not user:
-        raise HTTPException(status_code=404, detail="User not found")
+        raise HTTPException(status_code=404, detail="Usuário não encontrado")
     return user
 
 @router.get("/me", response_model=schemas.User)
@@ -33,7 +33,7 @@ def login_for_access_token(form_data: schemas.LoginForm, db: Session = Depends(g
     if not user or not verify_password(form_data.password, user.hashed_password):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Incorrect username or password",
+            detail="Usuário ou senha incorretos",
             headers={"WWW-Authenticate": "Bearer"},
         )
     
@@ -44,18 +44,51 @@ def login_for_access_token(form_data: schemas.LoginForm, db: Session = Depends(g
     
     return {"access_token": access_token, "token_type": "bearer"}
 
+@router.post("/change-password")
+def change_password(
+    data: schemas.PasswordChange,
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    # Verify current password
+    if not verify_password(data.current_password, current_user.hashed_password):
+        raise HTTPException(status_code=400, detail="Senha atual incorreta")
+    
+    if not data.new_password or len(data.new_password.strip()) < 4:
+        raise HTTPException(status_code=400, detail="A nova senha deve ter pelo menos 4 caracteres")
+    
+    # Hash and update new password
+    current_user.hashed_password = get_password_hash(data.new_password.strip())
+    db.commit()
+    return {"message": "Senha alterada com sucesso!"}
+
+@router.post("/mcp-token", response_model=schemas.MCPTokenResponse)
+def generate_mcp_token(
+    current_user: models.User = Depends(get_current_user)
+):
+    # Generate long-lived token for MCP agents/clients (valid for 365 days)
+    mcp_expires = timedelta(days=365)
+    mcp_token = create_access_token(
+        data={"sub": current_user.username, "scope": "mcp"},
+        expires_delta=mcp_expires
+    )
+    return {
+        "mcp_url": "/mcp/sse",
+        "mcp_token": mcp_token,
+        "token_type": "bearer",
+        "expires_in_days": 365
+    }
+
 @router.post("/register", response_model=schemas.User)
 def register_user(user: schemas.UserCreate, db: Session = Depends(get_db)):
-    # Check if user already exists
     db_user = db.query(models.User).filter(models.User.username == user.username).first()
     if db_user:
-        raise HTTPException(status_code=400, detail="Username already registered")
+        raise HTTPException(status_code=400, detail="Nome de usuário já cadastrado")
     
     db_email = db.query(models.User).filter(models.User.email == user.email).first()
     if db_email:
-        raise HTTPException(status_code=400, detail="Email already registered")
+        raise HTTPException(status_code=400, detail="E-mail já cadastrado")
     
-    # Hash password and create user
     hashed_password = get_password_hash(user.password)
     db_user = models.User(
         username=user.username,

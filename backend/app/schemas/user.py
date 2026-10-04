@@ -35,3 +35,13 @@ class Token(BaseModel):
 class LoginResponse(BaseModel):
     user: User
     token: Token
+
+class PasswordChange(BaseModel):
+    current_password: str
+    new_password: str
+
+class MCPTokenResponse(BaseModel):
+    mcp_url: str
+    mcp_token: str
+    token_type: str = "bearer"
+    expires_in_days: int = 365

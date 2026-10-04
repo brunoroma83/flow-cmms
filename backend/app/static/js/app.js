@@ -5,6 +5,7 @@ import { renderAssetsView } from './views/assetsView.js';
 import { renderMaintenanceView } from './views/maintenanceView.js';
 import { renderInventoryView } from './views/inventoryView.js';
 import { renderReportsView } from './views/reportsView.js';
+import { renderAdminView } from './views/adminView.js';
 
 // DOM Containers
 const authContainer = document.getElementById('auth-container');
@@ -80,6 +81,10 @@ async function router() {
     case '#reports':
       pageTitle.textContent = 'Relatórios Operacionais';
       await renderReportsView(appContent);
+      break;
+    case '#admin':
+      pageTitle.textContent = 'Painel Admin & Configurações MCP';
+      await renderAdminView(appContent);
       break;
     case '#dashboard':
     default:
