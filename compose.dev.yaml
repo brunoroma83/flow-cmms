@@ -1,9 +1,11 @@
 # Sobreposição para desenvolvimento local (conecta ao PostgreSQL 17 central de Dev)
 services:
   app:
+    env_file:
+      - .env
     environment:
       APP_ENV: development
-      DATABASE_URL: postgresql://${CMMS_DB_USER:-flow_cmms_user}:${CMMS_DB_PASSWORD:-cmms_dev_password}@postgres:5432/${CMMS_DB_NAME:-flow_cmms_db}
+      DATABASE_URL: ${DATABASE_URL:-postgresql://${CMMS_DB_USER:-flow_cmms_user}:${CMMS_DB_PASSWORD:-cmms_dev_password}@postgres:5432/${CMMS_DB_NAME:-flow_cmms_db}}
     ports:
       - "8001:8000"
     volumes:

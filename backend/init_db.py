@@ -45,8 +45,8 @@ def init_db():
     db = Session()
     
     try:
-        # Create default admin user if not exists
-        admin = db.query(User).filter(User.username == "admin").first()
+        # Create default admin user if not exists (check by username or email)
+        admin = db.query(User).filter((User.username == "admin") | (User.email == "admin@flowcmms.com")).first()
         if not admin:
             admin = User(
                 username="admin",
