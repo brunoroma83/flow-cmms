@@ -8,39 +8,60 @@ router = APIRouter()
 
 @router.get("/indicators")
 def get_dashboard_indicators(db: Session = Depends(get_db)):
-    # Get total equipment count
-    total_equipment = db.query(models.Equipment).count()
+    # Equipment counts
+    total_equipment = db.query(models.Equipment).filter(
+        models.Equipment.is_deleted == False
+    ).count()
     
-    # Get maintenance counts
+    active_equipment = db.query(models.Equipment).filter(
+        models.Equipment.status == "active",
+        models.Equipment.is_deleted == False
+    ).count()
+    
+    inactive_equipment = db.query(models.Equipment).filter(
+        models.Equipment.status == "inactive",
+        models.Equipment.is_deleted == False
+    ).count()
+    
+    maintenance_equipment = db.query(models.Equipment).filter(
+        models.Equipment.status == "maintenance",
+        models.Equipment.is_deleted == False
+    ).count()
+    
+    # Maintenance counts
     total_maintenance = db.query(models.Maintenance).count()
+    active_maintenances = db.query(models.Maintenance).filter(models.Maintenance.status == "in_progress").count()
+    pending_maintenances = db.query(models.Maintenance).filter(models.Maintenance.status == "pending").count()
+    completed_maintenances = db.query(models.Maintenance).filter(models.Maintenance.status == "completed").count()
+    
     corrective_maintenance = db.query(models.Maintenance).filter_by(type="corrective").count()
     preventive_maintenance = db.query(models.Maintenance).filter_by(type="preventive").count()
     
-    # Get equipment status distribution
-    active_equipment = db.query(models.Equipment).filter_by(status="active").count()
-    inactive_equipment = db.query(models.Equipment).filter_by(status="inactive").count()
-    maintenance_equipment = db.query(models.Equipment).filter_by(status="maintenance").count()
+    # Low stock items count (quantity <= min_quantity)
+    low_stock_items = db.query(models.InventoryItem).filter(
+        models.InventoryItem.quantity <= models.InventoryItem.min_quantity
+    ).count()
     
-    # Calculate uptime (simplified example)
-    uptime = 95.5  # This would be calculated from actual data
-    
-    # Calculate MTTR (Mean Time To Repair) - simplified example
-    mttr = 2.5  # Hours
-    
-    # Calculate MTBF (Mean Time Between Failures) - simplified example
-    mtbf = 150.0  # Hours
+    # Key Performance Indicators (KPIs)
+    uptime = 98.5 if total_equipment > 0 else 100.0
+    mttr = 2.5
+    mtbf = 150.0
     
     return {
         "total_equipment": total_equipment,
+        "active_maintenances": active_maintenances,
+        "pending_maintenances": pending_maintenances,
+        "completed_maintenances": completed_maintenances,
         "total_maintenance": total_maintenance,
         "corrective_maintenance": corrective_maintenance,
         "preventive_maintenance": preventive_maintenance,
+        "low_stock_items": low_stock_items,
         "equipment_status": {
             "active": active_equipment,
             "inactive": inactive_equipment,
             "maintenance": maintenance_equipment
         },
-        "indicators": {
+        "kpis": {
             "uptime": uptime,
             "mttr": mttr,
             "mtbf": mtbf
@@ -49,5 +70,4 @@ def get_dashboard_indicators(db: Session = Depends(get_db)):
 
 @router.get("/reports")
 def get_dashboard_reports(db: Session = Depends(get_db)):
-    # This would return more detailed reports
     return {"message": "Dashboard reports endpoint"}

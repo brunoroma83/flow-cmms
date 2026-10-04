@@ -5,19 +5,18 @@ export async function renderDashboardView(container) {
 
   try {
     const data = await api.getDashboardIndicators();
-    const stats = data.indicators || {
-      total_equipment: data.total_equipment || 0,
-      active_maintenances: data.active_maintenances || 0,
-      pending_maintenances: data.pending_maintenances || 0,
-      low_stock_items: data.low_stock_items || 0
-    };
+
+    const totalEquipment = data.total_equipment ?? 0;
+    const activeMaintenances = data.active_maintenances ?? 0;
+    const pendingMaintenances = data.pending_maintenances ?? 0;
+    const lowStockItems = data.low_stock_items ?? 0;
 
     container.innerHTML = `
       <div class="stats-grid">
         <div class="stat-card">
           <div class="stat-icon">🩺</div>
           <div class="stat-info">
-            <div class="stat-value">${stats.total_equipment}</div>
+            <div class="stat-value">${totalEquipment}</div>
             <div class="stat-label">Equipamentos Médicos Cadastrados</div>
           </div>
         </div>
@@ -25,7 +24,7 @@ export async function renderDashboardView(container) {
         <div class="stat-card">
           <div class="stat-icon" style="background-color: var(--warning-light);">🔧</div>
           <div class="stat-info">
-            <div class="stat-value">${stats.active_maintenances}</div>
+            <div class="stat-value">${activeMaintenances}</div>
             <div class="stat-label">Manutenções em Andamento</div>
           </div>
         </div>
@@ -33,7 +32,7 @@ export async function renderDashboardView(container) {
         <div class="stat-card">
           <div class="stat-icon" style="background-color: var(--danger-light);">⏳</div>
           <div class="stat-info">
-            <div class="stat-value">${stats.pending_maintenances}</div>
+            <div class="stat-value">${pendingMaintenances}</div>
             <div class="stat-label">Ordens de Serviço Pendentes</div>
           </div>
         </div>
@@ -41,7 +40,7 @@ export async function renderDashboardView(container) {
         <div class="stat-card">
           <div class="stat-icon" style="background-color: var(--primary-light);">📦</div>
           <div class="stat-info">
-            <div class="stat-value">${stats.low_stock_items}</div>
+            <div class="stat-value">${lowStockItems}</div>
             <div class="stat-label">Peças em Estoque Crítico</div>
           </div>
         </div>
