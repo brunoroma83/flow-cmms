@@ -1,6 +1,6 @@
 # Sobreposição para desenvolvimento local (conecta ao PostgreSQL 17 central de Dev)
 services:
-  backend:
+  app:
     environment:
       APP_ENV: development
       DATABASE_URL: postgresql://${CMMS_DB_USER:-flow_cmms_user}:${CMMS_DB_PASSWORD:-cmms_dev_password}@postgres:5432/${CMMS_DB_NAME:-flow_cmms_db}
@@ -13,20 +13,6 @@ services:
     command: uvicorn backend.app.main:app --host 0.0.0.0 --port 8000 --reload --reload-dir /app/backend
     networks:
       - dev_db_network
-
-  frontend:
-    environment:
-      REACT_APP_API_URL: http://localhost:8001
-      CHOKIDAR_USEPOLLING: "true"
-    ports:
-      - "3000:3000"
-    volumes:
-      - ./frontend:/app
-      - /app/node_modules
-
-  redis:
-    ports:
-      - "6379:6379"
 
 networks:
   web_network:

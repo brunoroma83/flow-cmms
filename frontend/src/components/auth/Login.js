@@ -23,11 +23,6 @@ function Login() {
     }
   };
 
-  const handleFillDemo = () => {
-    setUsername('admin');
-    setPassword('admin123');
-  };
-
   return (
     <div className="login-container">
       <div className="login-card">
@@ -70,13 +65,6 @@ function Login() {
             {loading ? 'Autenticando...' : 'Entrar no Sistema'}
           </button>
         </form>
-
-        <div className="login-demo-box">
-          <p>💡 <strong>Acesso Inicial de Teste:</strong></p>
-          <button type="button" onClick={handleFillDemo} className="btn-demo-fill">
-            Usar Usuário Admin (admin / admin123)
-          </button>
-        </div>
       </div>
     </div>
   );

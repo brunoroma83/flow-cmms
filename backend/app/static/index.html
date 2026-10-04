@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Flow CMMS - Gestão de Equipamentos Médicos</title>
+  <link rel="stylesheet" href="/css/app.css">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🏥</text></svg>">
+</head>
+<body>
+  <div id="root">
+    <!-- Unauthenticated Layout -->
+    <div id="auth-container" class="auth-layout" style="display: none;">
+      <!-- Login View loaded dynamically -->
+    </div>
+
+    <!-- Authenticated App Layout -->
+    <div id="app-container" class="app-layout" style="display: none;">
+      <!-- Sidebar Navigation -->
+      <aside class="sidebar">
+        <div class="sidebar-header">
+          <div class="sidebar-logo">🏥</div>
+          <div class="sidebar-brand">
+            <h1>Flow CMMS</h1>
+            <span>Engenharia Clínica</span>
+          </div>
+        </div>
+        <nav class="sidebar-nav">
+          <a href="#dashboard" class="nav-item" id="nav-dashboard">
+            <span class="nav-icon">📊</span>
+            <span class="nav-label">Dashboard</span>
+          </a>
+          <a href="#assets" class="nav-item" id="nav-assets">
+            <span class="nav-icon">🩺</span>
+            <span class="nav-label">Ativos Médicos</span>
+          </a>
+          <a href="#maintenance" class="nav-item" id="nav-maintenance">
+            <span class="nav-icon">🔧</span>
+            <span class="nav-label">Manutenções</span>
+          </a>
+          <a href="#inventory" class="nav-item" id="nav-inventory">
+            <span class="nav-icon">📦</span>
+            <span class="nav-label">Estoque de Peças</span>
+          </a>
+          <a href="#reports" class="nav-item" id="nav-reports">
+            <span class="nav-icon">📈</span>
+            <span class="nav-label">Relatórios</span>
+          </a>
+        </nav>
+        <div class="sidebar-footer">
+          <div class="user-profile">
+            <div class="user-avatar" id="sidebar-user-avatar">A</div>
+            <div class="user-info">
+              <span class="user-name" id="sidebar-user-name">Administrador</span>
+              <span class="user-role" id="sidebar-user-role">Engenharia Clínica</span>
+            </div>
+          </div>
+          <button id="btn-logout" class="btn-logout" title="Sair do Sistema">🚪 Sair</button>
+        </div>
+      </aside>
+
+      <!-- Main Workspace -->
+      <div class="main-wrapper">
+        <header class="main-header">
+          <div class="header-title">
+            <h2 id="page-title">Dashboard</h2>
+          </div>
+          <div class="header-status">
+            <span class="status-indicator online">● Sistema Conectado</span>
+            <span class="header-datetime" id="header-datetime"></span>
+          </div>
+        </header>
+
+        <main id="app-content" class="content-body">
+          <!-- Active SPA view loaded dynamically -->
+        </main>
+      </div>
+    </div>
+  </div>
+
+  <!-- Global Modal Container -->
+  <div id="modal-container"></div>
+
+  <!-- Vanilla JS SPA Application Modules -->
+  <script type="module" src="/js/app.js"></script>
+</body>
+</html>
