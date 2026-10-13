@@ -212,7 +212,10 @@ async function loadTenantsTable(isSuperAdmin) {
               <td style="text-align:right;">
                 <div style="display:flex; justify-content:flex-end; gap:6px;">
                   <button class="btn btn-sm btn-primary btn-manage-users" data-id="${t.id}" data-name="${t.name}" data-slug="${t.slug}">
-                    👥 Usuários da Unidade
+                    👥 Usuários
+                  </button>
+                  <button class="btn btn-sm btn-success btn-tenant-mcp-token" data-id="${t.id}" data-name="${t.name}" data-slug="${t.slug}" title="Gerar Token MCP Isolado para este hospital">
+                    🤖 Token MCP
                   </button>
                   <a href="/?s=${t.slug}" target="_blank" class="btn btn-sm btn-secondary" style="text-decoration:none;">
                     🚀 Entrar
@@ -238,6 +241,16 @@ async function loadTenantsTable(isSuperAdmin) {
         openTenantUsersModal(tid, tname, tslug);
       };
     });
+
+    document.querySelectorAll('.btn-tenant-mcp-token').forEach(btn => {
+      btn.onclick = () => {
+        const tid = parseInt(btn.getAttribute('data-id'));
+        const tname = btn.getAttribute('data-name');
+        const tslug = btn.getAttribute('data-slug');
+        openTenantMCPTokenModal(tid, tname, tslug);
+      };
+    });
+
 
     if (isSuperAdmin) {
       document.querySelectorAll('.btn-del-tenant').forEach(btn => {
@@ -847,5 +860,98 @@ function openEditManagerUserModal(userObj) {
   };
 }
 
+// Modal: Gerar e visualizar Token MCP isolado por hospital
+function openTenantMCPTokenModal(tenantId, tenantName, tenantSlug) {
+  const mcpUrl = `${window.location.origin}/mcp/sse?s=${tenantSlug}`;
+
+  modalContainer.innerHTML = `
+    <div class="modal-backdrop" style="position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); display:flex; justify-content:center; align-items:center; z-index:9999;">
+      <div class="modal-content" style="background:#fff; border-radius:12px; width:95%; max-width:580px; padding:26px; box-shadow:0 10px 25px rgba(0,0,0,0.15);">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
+          <div>
+            <h3 style="margin:0; color:#0f172a;">🤖 Token MCP: ${tenantName}</h3>
+            <p style="margin:2px 0 0 0; color:#64748b; font-size:0.85rem;">
+              Agentes de IA e assistentes MCP conectados terão acesso <strong>exclusivo e isolado</strong> à base deste hospital.
+            </p>
+          </div>
+          <button id="btn-close-mcp-modal" style="background:none; border:none; font-size:1.5rem; cursor:pointer;">✕</button>
+        </div>
+
+        <div class="form-group" style="margin-bottom:14px;">
+          <label style="font-size:0.85rem; font-weight:600; display:block; margin-bottom:4px;">🌐 URL do Endpoint MCP da Unidade</label>
+          <div style="display:flex; gap:8px;">
+            <input type="text" id="tenant-mcp-url" value="${mcpUrl}" readonly style="width:100%; padding:8px; font-family:monospace; font-size:0.85rem; background:#f8fafc; border:1px solid #cbd5e1; border-radius:6px;">
+            <button id="btn-copy-mcp-url" class="btn btn-secondary btn-sm" style="white-space:nowrap;">📋 Copiar</button>
+          </div>
+        </div>
+
+        <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; padding:16px; margin-bottom:18px;">
+          <label style="font-size:0.85rem; font-weight:600; color:#0f172a; display:block; margin-bottom:6px;">
+            🔑 Token de Acesso de Longa Duração (Bearer Token)
+          </label>
+          <div style="margin-bottom:10px;">
+            <button id="btn-do-gen-mcp-token" class="btn btn-success" style="width:100%; font-weight:600; padding:10px;">
+              ✨ Gerar Novo Token MCP Isolado (365 Dias)
+            </button>
+          </div>
+          <div id="mcp-generated-token-wrap" style="display:none; flex-direction:column; gap:8px;">
+            <textarea id="mcp-generated-token-text" rows="4" readonly style="width:100%; font-family:monospace; font-size:0.75rem; word-break:break-all; background:#fff; border:1px solid #cbd5e1; border-radius:6px; padding:8px;"></textarea>
+            <button id="btn-copy-mcp-token" class="btn btn-secondary btn-sm">📋 Copiar Token de Acesso</button>
+            <div style="font-size:0.8rem; color:#166534; font-weight:600; background:#dcfce7; padding:8px; border-radius:6px;">
+              ✓ Token gerado com sucesso! Válido por 365 dias para a unidade <code>${tenantSlug}</code>.
+            </div>
+          </div>
+        </div>
+
+        <div style="display:flex; justify-content:flex-end;">
+          <button id="btn-close-mcp-footer" class="btn btn-secondary">Fechar</button>
+        </div>
+      </div>
+    </div>
+  `;
+
+  const close = () => { modalContainer.innerHTML = ''; };
+  document.getElementById('btn-close-mcp-modal').onclick = close;
+  document.getElementById('btn-close-mcp-footer').onclick = close;
+
+  const copyUrlBtn = document.getElementById('btn-copy-mcp-url');
+  copyUrlBtn.onclick = () => {
+    const inp = document.getElementById('tenant-mcp-url');
+    inp.select();
+    navigator.clipboard.writeText(inp.value);
+    copyUrlBtn.textContent = '✓ Copiado!';
+    setTimeout(() => { copyUrlBtn.textContent = '📋 Copiar'; }, 2000);
+  };
+
+  const genBtn = document.getElementById('btn-do-gen-mcp-token');
+  const tokenWrap = document.getElementById('mcp-generated-token-wrap');
+  const tokenText = document.getElementById('mcp-generated-token-text');
+  const copyTokenBtn = document.getElementById('btn-copy-mcp-token');
+
+  genBtn.onclick = async () => {
+    genBtn.disabled = true;
+    genBtn.textContent = 'Gerando token isolado...';
+
+    try {
+      const res = await api.generateTenantMCPToken(tenantId);
+      tokenText.value = res.mcp_token;
+      tokenWrap.style.display = 'flex';
+    } catch (err) {
+      alert(`Erro ao gerar token MCP: ${err.message}`);
+    } finally {
+      genBtn.disabled = false;
+      genBtn.textContent = '✨ Gerar Novo Token MCP Isolado (365 Dias)';
+    }
+  };
+
+  copyTokenBtn.onclick = () => {
+    tokenText.select();
+    navigator.clipboard.writeText(tokenText.value);
+    copyTokenBtn.textContent = '✓ Token Copiado!';
+    setTimeout(() => { copyTokenBtn.textContent = '📋 Copiar Token de Acesso'; }, 2000);
+  };
+}
+
 init();
+
 

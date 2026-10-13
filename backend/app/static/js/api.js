@@ -166,6 +166,9 @@ export const api = {
   deleteManagerUser: (id) => managerRequest(`/api/manager/users/${id}`, {
     method: 'DELETE'
   }),
+  generateTenantMCPToken: (tenantId) => managerRequest(`/api/manager/tenants/${tenantId}/mcp-token`, {
+    method: 'POST'
+  }),
 
   // CMMS Tenant Auth & Admin
   login: async (username, password) => {
@@ -189,14 +192,12 @@ export const api = {
     method: 'POST',
     body: JSON.stringify({ current_password, new_password })
   }),
-  generateMCPToken: () => request('/api/auth/mcp-token', {
-    method: 'POST'
-  }),
   logout: () => {
     removeToken();
     removeUser();
     window.location.hash = '#login';
   },
+
 
   // Equipment Assets
   getEquipment: (params = '') => request(`/api/equipment/${params}`),

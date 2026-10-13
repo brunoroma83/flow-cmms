@@ -62,24 +62,8 @@ def change_password(
     db.commit()
     return {"message": "Senha alterada com sucesso!"}
 
-@router.post("/mcp-token", response_model=schemas.MCPTokenResponse)
-def generate_mcp_token(
-    current_user: models.User = Depends(get_current_user)
-):
-    # Generate long-lived token for MCP agents/clients (valid for 365 days)
-    mcp_expires = timedelta(days=365)
-    mcp_token = create_access_token(
-        data={"sub": current_user.username, "scope": "mcp"},
-        expires_delta=mcp_expires
-    )
-    return {
-        "mcp_url": "/mcp/sse",
-        "mcp_token": mcp_token,
-        "token_type": "bearer",
-        "expires_in_days": 365
-    }
-
 @router.post("/register", response_model=schemas.User)
+
 def register_user(user: schemas.UserCreate, db: Session = Depends(get_db)):
     db_user = db.query(models.User).filter(models.User.username == user.username).first()
     if db_user:

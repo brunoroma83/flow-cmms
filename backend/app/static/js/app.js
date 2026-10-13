@@ -85,9 +85,10 @@ async function router() {
       await renderReportsView(appContent);
       break;
     case '#admin':
-      pageTitle.textContent = 'Painel Admin & Configurações MCP';
+      pageTitle.textContent = 'Configurações do Usuário';
       await renderAdminView(appContent);
       break;
+
     case '#clients':
       pageTitle.textContent = 'Gerenciador de Clientes Multi-Tenant';
       await renderClientsManagerView(appContent);

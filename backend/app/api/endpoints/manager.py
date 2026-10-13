@@ -240,7 +240,52 @@ def update_tenant(
     db.refresh(tenant)
     return tenant
 
+@router.post("/tenants/{tenant_id}/mcp-token")
+def generate_tenant_mcp_token(
+    tenant_id: int,
+    current_user: ManagerUser = Depends(get_current_manager_user),
+    db: Session = Depends(get_master_db)
+):
+    """
+    Gera token de acesso de longa duração (365 dias) para agentes MCP.
+    O token é estritamente vinculado ao banco de dados do hospital (tenant_slug)
+    e somente pode ser gerado pelo Superadmin ou gestor autorizado da unidade.
+    """
+    tenant = db.query(Tenant).filter(Tenant.id == tenant_id).first()
+    if not tenant:
+        raise HTTPException(status_code=404, detail="Cliente/Unidade não encontrada.")
+
+    # RBAC verification: Superadmin or assigned manager
+    if current_user.role != "superadmin":
+        allowed_ids = [t.id for t in current_user.assigned_tenants]
+        if tenant.id not in allowed_ids:
+            raise HTTPException(
+                status_code=403,
+                detail="Você não tem permissão para gerar token MCP para esta unidade hospitalar."
+            )
+
+    mcp_expires = timedelta(days=365)
+    token_payload = {
+        "sub": f"mcp_{tenant.slug}",
+        "scope": "mcp",
+        "tenant_slug": tenant.slug,
+        "tenant_id": tenant.id,
+        "generated_by": current_user.username
+    }
+    mcp_token = create_access_token(data=token_payload, expires_delta=mcp_expires)
+
+    return {
+        "tenant_id": tenant.id,
+        "tenant_name": tenant.name,
+        "tenant_slug": tenant.slug,
+        "mcp_url": f"/mcp/sse?s={tenant.slug}",
+        "mcp_token": mcp_token,
+        "token_type": "bearer",
+        "expires_in_days": 365
+    }
+
 @router.delete("/tenants/{tenant_id}")
+
 def delete_tenant(
     tenant_id: int,
     drop_database: bool = True,

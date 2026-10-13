@@ -36,12 +36,22 @@ def get_db(
     If not provided (or for backwards compatibility / local dev tests), falls back to default database.
     """
     tenant_slug = x_tenant_slug
-    # Check if request has tenant_slug set by middleware or query param
+    # Check if request has tenant_slug set by middleware, query param, or scoped MCP token
     if request:
         if not tenant_slug:
             tenant_slug = request.headers.get("X-Tenant-ID") or request.headers.get("x-tenant-id")
         if not tenant_slug:
             tenant_slug = request.query_params.get("tenant_id") or request.query_params.get("tenant")
+        if not tenant_slug:
+            # Check if Authorization bearer token contains tenant_slug (e.g. MCP Token)
+            auth_header = request.headers.get("Authorization") or request.headers.get("authorization")
+            if auth_header and auth_header.startswith("Bearer "):
+                raw_jwt = auth_header.split(" ", 1)[1].strip()
+                from app.auth.security import decode_token
+                payload = decode_token(raw_jwt)
+                if payload and payload.get("tenant_slug"):
+                    tenant_slug = payload.get("tenant_slug")
+
 
     if tenant_slug:
         # Verify tenant exists and get db_name

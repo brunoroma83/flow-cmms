@@ -346,4 +346,72 @@ def test_manager_and_superadmin_can_change_own_password(client, superadmin_token
         headers={"Authorization": f"Bearer {superadmin_token}"}
     )
 
+def test_scoped_mcp_token_generation_and_tenant_isolation(client, superadmin_token):
+    slug = "hospital_mcp_teste"
+    # 1. Create tenant
+    res_t = client.post(
+        "/api/manager/tenants",
+        headers={"Authorization": f"Bearer {superadmin_token}"},
+        json={
+            "name": "Hospital MCP Teste",
+            "slug": slug,
+            "description": "Hospital para teste de token MCP isolado"
+        }
+    )
+    assert res_t.status_code == 201
+    tenant_id = res_t.json()["id"]
+
+    # 2. Superadmin generates MCP token for this tenant
+    res_mcp = client.post(
+        f"/api/manager/tenants/{tenant_id}/mcp-token",
+        headers={"Authorization": f"Bearer {superadmin_token}"}
+    )
+    assert res_mcp.status_code == 200
+    mcp_data = res_mcp.json()
+    assert "mcp_token" in mcp_data
+    assert mcp_data["tenant_slug"] == slug
+    mcp_token = mcp_data["mcp_token"]
+
+    # 3. Create equipment in this hospital using the MCP token directly
+    res_add_eq = client.post(
+        "/api/equipment/",
+        headers={"Authorization": f"Bearer {mcp_token}"},
+        json={
+            "name": "Monitor de IA Exclusivo MCP",
+            "serial_number": "MON-MCP-001",
+            "category_id": 1,
+            "status": "active"
+        }
+    )
+    assert res_add_eq.status_code == 200
+
+    # 4. Query equipment with MCP token: must return the item
+    res_get_eq = client.get(
+        "/api/equipment/",
+        headers={"Authorization": f"Bearer {mcp_token}"}
+    )
+    assert res_get_eq.status_code == 200
+    names = [e["name"] for e in res_get_eq.json()]
+    assert "Monitor de IA Exclusivo MCP" in names
+
+    # 5. Query default matriz DB: must NOT contain this item!
+    res_matriz = client.get(
+        "/api/equipment/",
+        headers={"X-Tenant-ID": "matriz"}
+    )
+    assert res_matriz.status_code == 200
+    matriz_names = [e["name"] for e in res_matriz.json()]
+    assert "Monitor de IA Exclusivo MCP" not in matriz_names
+
+    # 6. Verify client endpoint /api/auth/mcp-token does not exist anymore (404/405)
+    res_client_mcp = client.post("/api/auth/mcp-token")
+    assert res_client_mcp.status_code in [404, 405]
+
+    # Clean up
+    client.delete(
+        f"/api/manager/tenants/{tenant_id}?drop_database=true",
+        headers={"Authorization": f"Bearer {superadmin_token}"}
+    )
+
+
 
