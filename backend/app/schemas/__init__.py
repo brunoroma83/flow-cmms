@@ -4,6 +4,11 @@ from .user import User, UserCreate, UserUpdate, LoginForm, LoginResponse, Token,
 from .report import Report, ReportCreate, ReportUpdate
 from .inventory import InventoryItem, InventoryItemCreate, InventoryItemUpdate, StockAdjustment
 from .traceability import TraceabilityRecord, TraceabilityRecordCreate, TraceabilityRecordUpdate
+from .master import (
+    TenantBase, TenantCreate, TenantUpdate, TenantResponse,
+    ManagerUserBase, ManagerUserCreate, ManagerUserUpdate, ManagerUserResponse,
+    ManagerLoginRequest, ManagerLoginResponse
+)
 
 __all__ = [
     "Equipment", "EquipmentCreate", "EquipmentUpdate",
@@ -11,5 +16,8 @@ __all__ = [
     "User", "UserCreate", "UserUpdate", "LoginForm", "LoginResponse", "Token", "PasswordChange", "MCPTokenResponse",
     "Report", "ReportCreate", "ReportUpdate",
     "InventoryItem", "InventoryItemCreate", "InventoryItemUpdate", "StockAdjustment",
-    "TraceabilityRecord", "TraceabilityRecordCreate", "TraceabilityRecordUpdate"
+    "TraceabilityRecord", "TraceabilityRecordCreate", "TraceabilityRecordUpdate",
+    "TenantBase", "TenantCreate", "TenantUpdate", "TenantResponse",
+    "ManagerUserBase", "ManagerUserCreate", "ManagerUserUpdate", "ManagerUserResponse",
+    "ManagerLoginRequest", "ManagerLoginResponse"
 ]

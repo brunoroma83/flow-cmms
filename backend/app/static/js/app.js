@@ -6,6 +6,8 @@ import { renderMaintenanceView } from './views/maintenanceView.js';
 import { renderInventoryView } from './views/inventoryView.js';
 import { renderReportsView } from './views/reportsView.js';
 import { renderAdminView } from './views/adminView.js';
+import { renderClientsManagerView } from './views/clientsManagerView.js';
+
 
 // DOM Containers
 const authContainer = document.getElementById('auth-container');
@@ -86,7 +88,12 @@ async function router() {
       pageTitle.textContent = 'Painel Admin & Configurações MCP';
       await renderAdminView(appContent);
       break;
+    case '#clients':
+      pageTitle.textContent = 'Gerenciador de Clientes Multi-Tenant';
+      await renderClientsManagerView(appContent);
+      break;
     case '#dashboard':
+
     default:
       pageTitle.textContent = 'Dashboard Operacional';
       await renderDashboardView(appContent);

@@ -43,6 +43,8 @@ desktop.ini
 logs/
 scratch/
 tmp/
+backups/
+
 
 # Node.js & Web Assets (if applicable)
 node_modules/

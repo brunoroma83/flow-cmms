@@ -7,7 +7,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 
-from app.api.endpoints import equipment, maintenance, dashboard, auth, reports, inventory, traceability
+from app.api.endpoints import equipment, maintenance, dashboard, auth, reports, inventory, traceability, manager
 from app.core.config import settings
 from app.db.session import engine
 from app.models.base import Base
@@ -42,6 +42,7 @@ app.add_middleware(
 )
 
 # Include API REST routers
+app.include_router(manager.router, prefix="/api/manager", tags=["manager"])
 app.include_router(equipment.router, prefix="/api/equipment", tags=["equipment"])
 app.include_router(maintenance.router, prefix="/api/maintenance", tags=["maintenance"])
 app.include_router(dashboard.router, prefix="/api/dashboard", tags=["dashboard"])
@@ -49,6 +50,7 @@ app.include_router(auth.router, prefix="/api/auth", tags=["auth"])
 app.include_router(reports.router, prefix="/api/reports", tags=["reports"])
 app.include_router(inventory.router, prefix="/api/inventory", tags=["inventory"])
 app.include_router(traceability.router, prefix="/api/traceability", tags=["traceability"])
+
 
 @app.get("/health")
 def health_check():

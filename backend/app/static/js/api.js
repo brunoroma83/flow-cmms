@@ -1,6 +1,12 @@
 // Flow CMMS - API Service Client (Vanilla JS)
 const API_BASE_URL = window.location.origin;
 
+// Tenant Session Storage
+export const getActiveTenant = () => localStorage.getItem('flow_cmms_active_tenant') || '';
+export const setActiveTenant = (slug) => localStorage.setItem('flow_cmms_active_tenant', slug);
+export const removeActiveTenant = () => localStorage.removeItem('flow_cmms_active_tenant');
+
+// CMMS Tenant Token Storage
 export const getToken = () => localStorage.getItem('flow_cmms_token');
 export const setToken = (token) => localStorage.setItem('flow_cmms_token', token);
 export const removeToken = () => localStorage.removeItem('flow_cmms_token');
@@ -12,8 +18,21 @@ export const getUser = () => {
 export const setUser = (user) => localStorage.setItem('flow_cmms_user', JSON.stringify(user));
 export const removeUser = () => localStorage.removeItem('flow_cmms_user');
 
+// Master Manager User & Token Storage
+export const getManagerToken = () => localStorage.getItem('flow_cmms_manager_token');
+export const setManagerToken = (token) => localStorage.setItem('flow_cmms_manager_token', token);
+export const removeManagerToken = () => localStorage.removeItem('flow_cmms_manager_token');
+
+export const getManagerUser = () => {
+  const u = localStorage.getItem('flow_cmms_manager_user');
+  return u ? JSON.parse(u) : null;
+};
+export const setManagerUser = (user) => localStorage.setItem('flow_cmms_manager_user', JSON.stringify(user));
+export const removeManagerUser = () => localStorage.removeItem('flow_cmms_manager_user');
+
 async function request(endpoint, options = {}) {
   const token = getToken();
+  const activeTenant = getActiveTenant();
   const headers = {
     'Content-Type': 'application/json',
     ...options.headers
@@ -21,6 +40,9 @@ async function request(endpoint, options = {}) {
 
   if (token) {
     headers['Authorization'] = `Bearer ${token}`;
+  }
+  if (activeTenant) {
+    headers['X-Tenant-ID'] = activeTenant;
   }
 
   const response = await fetch(`${API_BASE_URL}${endpoint}`, {
@@ -51,8 +73,83 @@ async function request(endpoint, options = {}) {
   return response.json();
 }
 
+async function managerRequest(endpoint, options = {}) {
+  const token = getManagerToken();
+  const headers = {
+    'Content-Type': 'application/json',
+    ...options.headers
+  };
+
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+
+  const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+    ...options,
+    headers
+  });
+
+  if (response.status === 401) {
+    removeManagerToken();
+    removeManagerUser();
+    window.location.hash = '#manager-login';
+    throw new Error('Sessão de gerenciador expirada.');
+  }
+
+  if (!response.ok) {
+    let msg = `Erro HTTP ${response.status}`;
+    try {
+      const errorData = await response.json();
+      if (errorData.detail) {
+        msg = typeof errorData.detail === 'string' 
+          ? errorData.detail 
+          : errorData.detail.map(e => e.msg || JSON.stringify(e)).join(', ');
+      }
+    } catch (e) {}
+    throw new Error(msg);
+  }
+
+  return response.json();
+}
+
 export const api = {
-  // Auth & Admin
+  // Master Manager API
+  managerLogin: async (username, password) => {
+    const data = await managerRequest('/api/manager/auth/token', {
+      method: 'POST',
+      body: JSON.stringify({ username, password })
+    });
+    setManagerToken(data.access_token);
+    setManagerUser(data.user);
+    return data;
+  },
+  managerLogout: () => {
+    removeManagerToken();
+    removeManagerUser();
+  },
+  getManagerMe: () => managerRequest('/api/manager/auth/me'),
+  getTenants: () => managerRequest('/api/manager/tenants'),
+  createTenant: (data) => managerRequest('/api/manager/tenants', {
+    method: 'POST',
+    body: JSON.stringify(data)
+  }),
+  deleteTenant: (id) => managerRequest(`/api/manager/tenants/${id}?drop_database=true`, {
+    method: 'DELETE'
+  }),
+  getManagerUsers: () => managerRequest('/api/manager/users'),
+  createManagerUser: (data) => managerRequest('/api/manager/users', {
+    method: 'POST',
+    body: JSON.stringify(data)
+  }),
+  updateManagerUser: (id, data) => managerRequest(`/api/manager/users/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(data)
+  }),
+  deleteManagerUser: (id) => managerRequest(`/api/manager/users/${id}`, {
+    method: 'DELETE'
+  }),
+
+  // CMMS Tenant Auth & Admin
   login: async (username, password) => {
     const data = await request('/api/auth/token', {
       method: 'POST',

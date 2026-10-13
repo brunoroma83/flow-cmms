@@ -59,6 +59,37 @@ def init_db():
             db.commit()
             print("✓ Admin user created (username: admin, password: admin123)")
 
+        # Create default Master Platform Superadmin (Gerenciador Central)
+        from app.models.master import ManagerUser, Tenant
+        superadmin = db.query(ManagerUser).filter(ManagerUser.username == "superadmin").first()
+        if not superadmin:
+            superadmin = ManagerUser(
+                username="superadmin",
+                email="superadmin@flowcmms.com",
+                hashed_password=get_password_hash("superadmin123"),
+                role="superadmin",
+                is_active=True
+            )
+            db.add(superadmin)
+            db.commit()
+            print("[OK] Master Platform Superadmin created (username: superadmin, password: superadmin123)")
+
+        # Register default tenant in master table if not exists
+        default_tenant = db.query(Tenant).filter(Tenant.slug == "matriz").first()
+        if not default_tenant:
+            default_tenant = Tenant(
+                name="Hospital Central Matriz",
+                slug="matriz",
+                db_name="flow_cmms_db",
+                description="Unidade hospitalar principal padrão",
+                is_active=True
+            )
+            db.add(default_tenant)
+            db.commit()
+            print("[OK] Default Tenant 'matriz' registered")
+
+
+
         # Create sample equipment if empty
         if db.query(Equipment).count() == 0:
             equipments = [
