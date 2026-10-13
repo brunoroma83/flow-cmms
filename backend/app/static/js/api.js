@@ -205,10 +205,15 @@ export const api = {
     method: 'POST',
     body: JSON.stringify(data)
   }),
+  updateEquipment: (id, data) => request(`/api/equipment/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(data)
+  }),
   deleteEquipment: (id) => request(`/api/equipment/${id}`, {
     method: 'DELETE'
   }),
   getMaintenanceHistory: (equipmentId) => request(`/api/reports/maintenance-history/${equipmentId}`),
+
 
   // Maintenance OS
   getMaintenance: (params = '') => request(`/api/maintenance/${params}`),

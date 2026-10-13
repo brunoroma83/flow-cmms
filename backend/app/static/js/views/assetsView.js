@@ -161,9 +161,10 @@ export async function renderAssetsView(container) {
       btn.addEventListener('click', () => {
         const id = parseInt(btn.dataset.id, 10);
         const item = assets.find(a => a.id === id);
-        if (item) openAssetDetailModal(item);
+        if (item) openAssetDetailModal(item, loadAssets);
       });
     });
+
 
     tableWrapper.querySelectorAll('.btn-asset-delete').forEach(btn => {
       btn.addEventListener('click', async () => {
@@ -314,7 +315,7 @@ function openNewAssetModal(onSuccess) {
   };
 }
 
-async function openAssetDetailModal(item) {
+async function openAssetDetailModal(item, onUpdate) {
   const container = document.getElementById('modal-container');
   container.innerHTML = `
     <div class="modal-overlay">
@@ -324,7 +325,10 @@ async function openAssetDetailModal(item) {
             <h3>${item.name}</h3>
             <p style="font-size:0.85rem; color:var(--text-muted);">Série: <code>${item.serial_number}</code> ${item.anvisa_register ? `• ANVISA: ${item.anvisa_register}` : ''}</p>
           </div>
-          <button class="modal-close" id="modal-close-btn">✕</button>
+          <div style="display:flex; align-items:center; gap:10px;">
+            <button class="btn btn-primary btn-sm" id="btn-edit-asset-detail">✏️ Editar Equipamento</button>
+            <button class="modal-close" id="modal-close-btn">✕</button>
+          </div>
         </div>
         <div class="modal-body">
           <div class="form-grid" style="margin-bottom: 20px;">
@@ -334,10 +338,12 @@ async function openAssetDetailModal(item) {
             <div><strong>Localização:</strong> ${item.location || '-'}</div>
             <div><strong>Status:</strong> ${item.status}</div>
           </div>
+          ${item.description ? `<div style="margin-bottom:16px; padding:10px; background:#f8fafc; border-radius:6px; font-size:0.875rem;"><strong>Descrição:</strong> ${item.description}</div>` : ''}
           <h4 style="margin-bottom:10px; border-bottom:1px solid var(--border-color); padding-bottom:6px;">🔧 Histórico de Manutenções da OS</h4>
           <div id="asset-history-wrapper"><div class="loading-spinner">Carregando histórico de OS...</div></div>
         </div>
-        <div class="modal-footer">
+        <div class="modal-footer" style="display:flex; justify-content:space-between; align-items:center;">
+          <button class="btn btn-primary" id="btn-edit-asset-footer">✏️ Editar Informações</button>
           <button class="btn btn-secondary" id="modal-close-footer">Fechar</button>
         </div>
       </div>
@@ -347,6 +353,16 @@ async function openAssetDetailModal(item) {
   const close = () => { container.innerHTML = ''; };
   container.querySelector('#modal-close-btn').onclick = close;
   container.querySelector('#modal-close-footer').onclick = close;
+
+  const triggerEdit = () => {
+    openEditAssetModal(item, async (updatedItem) => {
+      if (onUpdate) await onUpdate();
+      openAssetDetailModal(updatedItem, onUpdate);
+    });
+  };
+
+  container.querySelector('#btn-edit-asset-detail').onclick = triggerEdit;
+  container.querySelector('#btn-edit-asset-footer').onclick = triggerEdit;
 
   const historyWrapper = container.querySelector('#asset-history-wrapper');
   try {
@@ -378,3 +394,108 @@ async function openAssetDetailModal(item) {
     historyWrapper.innerHTML = `<div class="empty-state">Sem histórico ou indisponível.</div>`;
   }
 }
+
+function openEditAssetModal(item, onSuccess) {
+  const container = document.getElementById('modal-container');
+  container.innerHTML = `
+    <div class="modal-overlay">
+      <div class="modal-container">
+        <div class="modal-header">
+          <h3>✏️ Editar Equipamento Médico</h3>
+          <button class="modal-close" id="modal-close-btn">✕</button>
+        </div>
+        <form id="form-edit-asset">
+          <div class="modal-body form-grid">
+            <div class="form-group full-width">
+              <label>Nome do Equipamento *</label>
+              <input type="text" id="edit-asset-name" value="${item.name || ''}" required>
+            </div>
+            <div class="form-group">
+              <label>Número de Série *</label>
+              <input type="text" id="edit-asset-serial" value="${item.serial_number || ''}" required>
+            </div>
+            <div class="form-group">
+              <label>Registro ANVISA</label>
+              <input type="text" id="edit-asset-anvisa" value="${item.anvisa_register || ''}">
+            </div>
+            <div class="form-group">
+              <label>Tipo de Equipamento</label>
+              <select id="edit-asset-type">
+                <option value="Diagnóstico por Imagem" ${item.equipment_type === 'Diagnóstico por Imagem' ? 'selected' : ''}>Diagnóstico por Imagem</option>
+                <option value="Monitorização Paciente" ${item.equipment_type === 'Monitorização Paciente' ? 'selected' : ''}>Monitorização Paciente</option>
+                <option value="Suporte à Vida" ${item.equipment_type === 'Suporte à Vida' ? 'selected' : ''}>Suporte à Vida</option>
+                <option value="Emergência / Desfibrilação" ${item.equipment_type === 'Emergência / Desfibrilação' ? 'selected' : ''}>Emergência / Desfibrilação</option>
+                <option value="Bomba de Infusão" ${item.equipment_type === 'Bomba de Infusão' ? 'selected' : ''}>Bomba de Infusão</option>
+                <option value="Laboratório / Análise" ${item.equipment_type === 'Laboratório / Análise' ? 'selected' : ''}>Laboratório / Análise</option>
+                <option value="Geral" ${(!item.equipment_type || item.equipment_type === 'Geral') ? 'selected' : ''}>Geral</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Status Operacional</label>
+              <select id="edit-asset-status">
+                <option value="active" ${item.status === 'active' ? 'selected' : ''}>Ativo (Em Operação)</option>
+                <option value="maintenance" ${item.status === 'maintenance' ? 'selected' : ''}>Em Manutenção</option>
+                <option value="inactive" ${item.status === 'inactive' ? 'selected' : ''}>Inativo</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Fabricante</label>
+              <input type="text" id="edit-asset-manufacturer" value="${item.manufacturer || ''}">
+            </div>
+            <div class="form-group">
+              <label>Modelo</label>
+              <input type="text" id="edit-asset-model" value="${item.model || ''}">
+            </div>
+            <div class="form-group">
+              <label>Localização / Setor</label>
+              <input type="text" id="edit-asset-location" value="${item.location || ''}">
+            </div>
+            <div class="form-group full-width">
+              <label>Especificações e Detalhes Adicionais</label>
+              <textarea id="edit-asset-desc" rows="3">${item.description || ''}</textarea>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" id="modal-cancel-edit">Cancelar</button>
+            <button type="submit" class="btn btn-primary" id="btn-submit-edit-asset">💾 Salvar Alterações</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  `;
+
+  const close = () => { container.innerHTML = ''; };
+  container.querySelector('#modal-close-btn').onclick = close;
+  container.querySelector('#modal-cancel-edit').onclick = close;
+
+  const form = container.querySelector('#form-edit-asset');
+  form.onsubmit = async (e) => {
+    e.preventDefault();
+    const btn = form.querySelector('#btn-submit-edit-asset');
+    btn.disabled = true;
+    btn.textContent = 'Salvando...';
+
+    const payload = {
+      name: container.querySelector('#edit-asset-name').value.trim(),
+      serial_number: container.querySelector('#edit-asset-serial').value.trim(),
+      anvisa_register: container.querySelector('#edit-asset-anvisa').value.trim(),
+      equipment_type: container.querySelector('#edit-asset-type').value,
+      status: container.querySelector('#edit-asset-status').value,
+      manufacturer: container.querySelector('#edit-asset-manufacturer').value.trim(),
+      model: container.querySelector('#edit-asset-model').value.trim(),
+      location: container.querySelector('#edit-asset-location').value.trim(),
+      description: container.querySelector('#edit-asset-desc').value.trim()
+    };
+
+    try {
+      const updated = await api.updateEquipment(item.id, payload);
+      close();
+      if (onSuccess) await onSuccess(updated);
+    } catch (err) {
+      alert('Erro ao atualizar equipamento: ' + err.message);
+      btn.disabled = false;
+      btn.textContent = '💾 Salvar Alterações';
+    }
+  };
+}
+

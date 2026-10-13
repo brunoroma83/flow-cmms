@@ -127,6 +127,14 @@ def test_tenant_creation_provisions_isolated_database_and_admin(client, superadm
     assert del_res.status_code == 200
 
 def test_rbac_manager_sees_only_assigned_tenants(client, superadmin_token):
+    # Ensure clean state for test manager
+    db = SessionLocal()
+    old_u = db.query(ManagerUser).filter(ManagerUser.username == "gestor_restrito").first()
+    if old_u:
+        db.delete(old_u)
+        db.commit()
+    db.close()
+
     # 1. Create a tenant for testing
     res_t = client.post(
         "/api/manager/tenants",
@@ -137,6 +145,7 @@ def test_rbac_manager_sees_only_assigned_tenants(client, superadmin_token):
     db = SessionLocal()
     tenant_beta = db.query(Tenant).filter(Tenant.slug == "hospital_beta").first()
     db.close()
+
 
     # 2. Create a manager user without access to Beta
     user_res = client.post(
