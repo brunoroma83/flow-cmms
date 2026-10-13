@@ -266,3 +266,75 @@ def test_unit_manager_can_create_client_users_and_client_logs_in(client, superad
         headers={"Authorization": f"Bearer {superadmin_token}"}
     )
 
+def test_manager_and_superadmin_can_change_own_password(client, superadmin_token):
+    # 1. Create a test manager
+    res_m = client.post(
+        "/api/manager/users",
+        headers={"Authorization": f"Bearer {superadmin_token}"},
+        json={
+            "username": "gestor_senha_teste",
+            "email": "senha_teste@flowcmms.com",
+            "password": "senha_inicial_123",
+            "role": "manager"
+        }
+    )
+    assert res_m.status_code == 201
+    mgr_id = res_m.json()["id"]
+
+    # 2. Login as the manager
+    res_l1 = client.post(
+        "/api/manager/auth/token",
+        json={"username": "gestor_senha_teste", "password": "senha_inicial_123"}
+    )
+    assert res_l1.status_code == 200
+    mgr_token = res_l1.json()["access_token"]
+
+    # 3. Manager changes own password
+    res_ch = client.post(
+        "/api/manager/auth/change-password",
+        headers={"Authorization": f"Bearer {mgr_token}"},
+        json={"current_password": "senha_inicial_123", "new_password": "nova_senha_gestor_456"}
+    )
+    assert res_ch.status_code == 200
+    assert "sucesso" in res_ch.json()["message"].lower()
+
+    # 4. Old password must fail
+    res_l_old = client.post(
+        "/api/manager/auth/token",
+        json={"username": "gestor_senha_teste", "password": "senha_inicial_123"}
+    )
+    assert res_l_old.status_code == 401
+
+    # 5. New password must succeed
+    res_l_new = client.post(
+        "/api/manager/auth/token",
+        json={"username": "gestor_senha_teste", "password": "nova_senha_gestor_456"}
+    )
+    assert res_l_new.status_code == 200
+
+    # 6. Superadmin edits manager info and resets manager's password
+    res_edit = client.put(
+        f"/api/manager/users/{mgr_id}",
+        headers={"Authorization": f"Bearer {superadmin_token}"},
+        json={
+            "email": "novo_email@flowcmms.com",
+            "password": "senha_resetada_pelo_admin_789"
+        }
+    )
+    assert res_edit.status_code == 200
+    assert res_edit.json()["email"] == "novo_email@flowcmms.com"
+
+    # 7. Login with reset password succeeds
+    res_l_reset = client.post(
+        "/api/manager/auth/token",
+        json={"username": "gestor_senha_teste", "password": "senha_resetada_pelo_admin_789"}
+    )
+    assert res_l_reset.status_code == 200
+
+    # Clean up test manager
+    client.delete(
+        f"/api/manager/users/{mgr_id}",
+        headers={"Authorization": f"Bearer {superadmin_token}"}
+    )
+
+

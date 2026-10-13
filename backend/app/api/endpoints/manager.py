@@ -87,9 +87,35 @@ def manager_login(form_data: ManagerLoginRequest, db: Session = Depends(get_mast
 def get_manager_me(current_user: ManagerUser = Depends(get_current_manager_user)):
     return current_user
 
+@router.post("/auth/change-password")
+def change_manager_password(
+    data: dict,
+    current_user: ManagerUser = Depends(get_current_manager_user),
+    db: Session = Depends(get_master_db)
+):
+    """
+    Permite que qualquer gestor (ou superadmin) altere a sua própria senha de acesso.
+    """
+    current_password = data.get("current_password", "").strip()
+    new_password = data.get("new_password", "").strip()
+
+    if not current_password or not new_password:
+        raise HTTPException(status_code=400, detail="Senha atual e nova senha são obrigatórias.")
+
+    if not verify_password(current_password, current_user.hashed_password):
+        raise HTTPException(status_code=400, detail="A senha atual está incorreta.")
+
+    if len(new_password) < 4:
+        raise HTTPException(status_code=400, detail="A nova senha deve ter pelo menos 4 caracteres.")
+
+    current_user.hashed_password = get_password_hash(new_password)
+    db.commit()
+    return {"message": "Senha alterada com sucesso!"}
+
 # ============================================================================
 # Gestão de Clientes / Tenants
 # ============================================================================
+
 
 @router.get("/tenants", response_model=List[TenantResponse])
 def list_tenants(

@@ -88,6 +88,9 @@ async function renderManagerDashboard(user) {
         </p>
       </div>
       <div style="display:flex; gap:10px;">
+        <button id="btn-change-my-password" class="btn btn-secondary" style="display:flex; align-items:center; gap:6px;">
+          🔑 Alterar Minha Senha
+        </button>
         <a href="/" target="_blank" class="btn btn-secondary" style="text-decoration:none; display:flex; align-items:center; gap:6px;">
           🌐 Acessar Portal do Cliente
         </a>
@@ -96,6 +99,7 @@ async function renderManagerDashboard(user) {
     </header>
 
     <div id="dashboard-alert" style="display:none; padding:12px; border-radius:8px; margin-bottom:18px;"></div>
+
 
     <!-- Tenants Section -->
     <section style="background:#fff; border-radius:12px; border:1px solid #e2e8f0; padding:20px; margin-bottom:24px;">
@@ -137,7 +141,12 @@ async function renderManagerDashboard(user) {
     renderManagerLogin();
   };
 
+  document.getElementById('btn-change-my-password').onclick = () => {
+    openChangeMyPasswordModal(user.username);
+  };
+
   document.getElementById('btn-add-tenant').onclick = () => openCreateTenantModal();
+
 
   if (isSuperAdmin) {
     document.getElementById('btn-add-manager-user').onclick = () => openCreateManagerUserModal();
@@ -526,16 +535,30 @@ async function loadManagersTable() {
                       : '<span style="color:#94a3b8;">Nenhuma unidade vinculada</span>')}
               </td>
               <td style="text-align:right;">
-                ${u.role !== 'superadmin' ? `
-                  <button class="btn btn-sm btn-secondary btn-assign-units" data-id="${u.id}">⚙️ Vincular Unidades</button>
-                  <button class="btn btn-sm btn-danger btn-del-manager" data-id="${u.id}" data-name="${u.username}">🗑️</button>
-                ` : '<span style="color:#94a3b8;">Principal</span>'}
+                <div style="display:flex; justify-content:flex-end; gap:6px;">
+                  <button class="btn btn-sm btn-secondary btn-edit-manager" data-id="${u.id}" title="Editar Informações e Senha">
+                    ✏️ Editar / Senha
+                  </button>
+                  ${u.role !== 'superadmin' ? `
+                    <button class="btn btn-sm btn-secondary btn-assign-units" data-id="${u.id}">⚙️ Unidades</button>
+                    <button class="btn btn-sm btn-danger btn-del-manager" data-id="${u.id}" data-name="${u.username}">🗑️</button>
+                  ` : ''}
+                </div>
               </td>
             </tr>
           `).join('')}
         </tbody>
       </table>
     `;
+
+    document.querySelectorAll('.btn-edit-manager').forEach(btn => {
+      btn.onclick = () => {
+        const uid = parseInt(btn.getAttribute('data-id'));
+        const u = users.find(x => x.id === uid);
+        if (u) openEditManagerUserModal(u);
+      };
+    });
+
 
     document.querySelectorAll('.btn-assign-units').forEach(btn => {
       btn.onclick = () => {
@@ -665,4 +688,164 @@ function openCreateManagerUserModal() {
   };
 }
 
+// Modal: Gestor ou Superadmin alterar a sua própria senha
+function openChangeMyPasswordModal(currentUsername) {
+  modalContainer.innerHTML = `
+    <div class="modal-backdrop" style="position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); display:flex; justify-content:center; align-items:center; z-index:9999;">
+      <div class="modal-content" style="background:#fff; border-radius:10px; width:90%; max-width:440px; padding:24px; box-shadow:0 10px 25px rgba(0,0,0,0.15);">
+        <h3 style="margin-top:0; color:#0f172a;">🔑 Alterar Minha Senha</h3>
+        <p style="color:#64748b; font-size:0.875rem; margin-bottom:14px;">
+          Usuário: <strong>${currentUsername}</strong>
+        </p>
+        <div id="pwd-change-alert" style="display:none; padding:10px; border-radius:6px; margin-bottom:12px; font-size:0.85rem;"></div>
+        <form id="form-change-my-pwd">
+          <div class="form-group" style="margin-bottom:12px;">
+            <label style="font-size:0.85rem; font-weight:600; display:block; margin-bottom:4px;">Senha Atual *</label>
+            <input type="password" id="my-pwd-current" required placeholder="Digite sua senha atual" style="width:100%; padding:9px; border:1px solid #cbd5e1; border-radius:6px;">
+          </div>
+          <div class="form-group" style="margin-bottom:12px;">
+            <label style="font-size:0.85rem; font-weight:600; display:block; margin-bottom:4px;">Nova Senha *</label>
+            <input type="password" id="my-pwd-new" required minlength="4" placeholder="Mínimo 4 caracteres" style="width:100%; padding:9px; border:1px solid #cbd5e1; border-radius:6px;">
+          </div>
+          <div class="form-group" style="margin-bottom:18px;">
+            <label style="font-size:0.85rem; font-weight:600; display:block; margin-bottom:4px;">Confirmar Nova Senha *</label>
+            <input type="password" id="my-pwd-confirm" required minlength="4" placeholder="Confirme a nova senha" style="width:100%; padding:9px; border:1px solid #cbd5e1; border-radius:6px;">
+          </div>
+          <div style="display:flex; justify-content:flex-end; gap:8px;">
+            <button type="button" id="btn-cancel-pwd" class="btn btn-secondary">Cancelar</button>
+            <button type="submit" id="btn-submit-pwd" class="btn btn-primary">Salvar Nova Senha</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  `;
+
+  document.getElementById('btn-cancel-pwd').onclick = () => { modalContainer.innerHTML = ''; };
+
+  document.getElementById('form-change-my-pwd').onsubmit = async (e) => {
+    e.preventDefault();
+    const cur = document.getElementById('my-pwd-current').value;
+    const n = document.getElementById('my-pwd-new').value;
+    const conf = document.getElementById('my-pwd-confirm').value;
+    const al = document.getElementById('pwd-change-alert');
+    const btn = document.getElementById('btn-submit-pwd');
+
+    if (n !== conf) {
+      al.style.display = 'block';
+      al.style.background = '#fee2e2';
+      al.style.color = '#991b1b';
+      al.textContent = 'A nova senha e a confirmação não coincidem.';
+      return;
+    }
+
+    btn.disabled = true;
+    btn.textContent = 'Salvando...';
+
+    try {
+      await api.changeManagerPassword(cur, n);
+      modalContainer.innerHTML = '';
+      showMsg('Sua senha foi alterada com sucesso!', 'success');
+    } catch (err) {
+      al.style.display = 'block';
+      al.style.background = '#fee2e2';
+      al.style.color = '#991b1b';
+      al.textContent = err.message || 'Erro ao alterar senha.';
+      btn.disabled = false;
+      btn.textContent = 'Salvar Nova Senha';
+    }
+  };
+}
+
+// Modal: Superadmin editar informações e/ou redefinir senha de outro gestor
+function openEditManagerUserModal(userObj) {
+  modalContainer.innerHTML = `
+    <div class="modal-backdrop" style="position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); display:flex; justify-content:center; align-items:center; z-index:9999;">
+      <div class="modal-content" style="background:#fff; border-radius:10px; width:90%; max-width:480px; padding:24px; box-shadow:0 10px 25px rgba(0,0,0,0.15);">
+        <h3 style="margin-top:0; color:#0f172a;">✏️ Editar Gestor: ${userObj.username}</h3>
+        <p style="color:#64748b; font-size:0.875rem; margin-bottom:14px;">
+          Atualize os dados cadastrais ou redefina a senha deste usuário gestor.
+        </p>
+        <div id="edit-muser-alert" style="display:none; padding:10px; border-radius:6px; margin-bottom:12px; font-size:0.85rem;"></div>
+        <form id="form-edit-muser">
+          <div class="form-group" style="margin-bottom:12px;">
+            <label style="font-size:0.85rem; font-weight:600; display:block; margin-bottom:4px;">Nome de Usuário</label>
+            <input type="text" value="${userObj.username}" disabled style="width:100%; padding:9px; background:#f1f5f9; border:1px solid #cbd5e1; border-radius:6px;">
+          </div>
+          <div class="form-group" style="margin-bottom:12px;">
+            <label style="font-size:0.85rem; font-weight:600; display:block; margin-bottom:4px;">E-mail *</label>
+            <input type="email" id="edit-muser-email" value="${userObj.email}" required style="width:100%; padding:9px; border:1px solid #cbd5e1; border-radius:6px;">
+          </div>
+          <div class="form-group" style="margin-bottom:12px;">
+            <label style="font-size:0.85rem; font-weight:600; display:block; margin-bottom:4px;">Perfil / Nível</label>
+            <select id="edit-muser-role" style="width:100%; padding:9px; border:1px solid #cbd5e1; border-radius:6px;">
+              <option value="manager" ${userObj.role === 'manager' ? 'selected' : ''}>Gestor de Unidades</option>
+              <option value="superadmin" ${userObj.role === 'superadmin' ? 'selected' : ''}>Admin da Plataforma</option>
+            </select>
+          </div>
+          <div class="form-group" style="margin-bottom:12px;">
+            <label style="font-size:0.85rem; font-weight:600; display:block; margin-bottom:4px;">Status da Conta</label>
+            <select id="edit-muser-active" style="width:100%; padding:9px; border:1px solid #cbd5e1; border-radius:6px;">
+              <option value="true" ${userObj.is_active ? 'selected' : ''}>Ativo</option>
+              <option value="false" ${!userObj.is_active ? 'selected' : ''}>Inativo / Desativado</option>
+            </select>
+          </div>
+          <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; padding:12px; margin-bottom:18px;">
+            <label style="font-size:0.85rem; font-weight:600; color:#0f172a; display:block; margin-bottom:4px;">
+              🔑 Redefinir Senha do Gestor (Opcional)
+            </label>
+            <input type="password" id="edit-muser-password" placeholder="Preencha apenas se desejar alterar a senha" style="width:100%; padding:8px; border:1px solid #cbd5e1; border-radius:6px; font-size:0.85rem;">
+            <small style="color:#64748b; font-size:0.75rem; display:block; margin-top:2px;">Deixe em branco para manter a senha atual do gestor.</small>
+          </div>
+          <div style="display:flex; justify-content:flex-end; gap:8px;">
+            <button type="button" id="btn-cancel-edit-mu" class="btn btn-secondary">Cancelar</button>
+            <button type="submit" id="btn-save-edit-mu" class="btn btn-primary">Salvar Alterações</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  `;
+
+  document.getElementById('btn-cancel-edit-mu').onclick = () => { modalContainer.innerHTML = ''; };
+
+  document.getElementById('form-edit-muser').onsubmit = async (e) => {
+    e.preventDefault();
+    const btn = document.getElementById('btn-save-edit-mu');
+    const al = document.getElementById('edit-muser-alert');
+    const email = document.getElementById('edit-muser-email').value.trim();
+    const role = document.getElementById('edit-muser-role').value;
+    const is_active = document.getElementById('edit-muser-active').value === 'true';
+    const pwd = document.getElementById('edit-muser-password').value;
+
+    const payload = { email, role, is_active };
+    if (pwd && pwd.trim().length > 0) {
+      if (pwd.trim().length < 4) {
+        al.style.display = 'block';
+        al.style.background = '#fee2e2';
+        al.style.color = '#991b1b';
+        al.textContent = 'A nova senha deve ter pelo menos 4 caracteres.';
+        return;
+      }
+      payload.password = pwd.trim();
+    }
+
+    btn.disabled = true;
+    btn.textContent = 'Salvando...';
+
+    try {
+      await api.updateManagerUser(userObj.id, payload);
+      modalContainer.innerHTML = '';
+      showMsg(`Dados do gestor "${userObj.username}" atualizados com sucesso!`, 'success');
+      loadManagersTable();
+    } catch (err) {
+      al.style.display = 'block';
+      al.style.background = '#fee2e2';
+      al.style.color = '#991b1b';
+      al.textContent = err.message || 'Erro ao atualizar dados.';
+      btn.disabled = false;
+      btn.textContent = 'Salvar Alterações';
+    }
+  };
+}
+
 init();
+

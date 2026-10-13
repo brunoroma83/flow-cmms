@@ -128,7 +128,12 @@ export const api = {
     removeManagerUser();
   },
   getManagerMe: () => managerRequest('/api/manager/auth/me'),
+  changeManagerPassword: (current_password, new_password) => managerRequest('/api/manager/auth/change-password', {
+    method: 'POST',
+    body: JSON.stringify({ current_password, new_password })
+  }),
   getTenants: () => managerRequest('/api/manager/tenants'),
+
   createTenant: (data) => managerRequest('/api/manager/tenants', {
     method: 'POST',
     body: JSON.stringify(data)
