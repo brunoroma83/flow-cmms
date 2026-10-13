@@ -136,7 +136,20 @@ export const api = {
   deleteTenant: (id) => managerRequest(`/api/manager/tenants/${id}?drop_database=true`, {
     method: 'DELETE'
   }),
+  getTenantUsers: (tenantId) => managerRequest(`/api/manager/tenants/${tenantId}/users`),
+  createTenantUser: (tenantId, data) => managerRequest(`/api/manager/tenants/${tenantId}/users`, {
+    method: 'POST',
+    body: JSON.stringify(data)
+  }),
+  updateTenantUser: (tenantId, userId, data) => managerRequest(`/api/manager/tenants/${tenantId}/users/${userId}`, {
+    method: 'PUT',
+    body: JSON.stringify(data)
+  }),
+  deleteTenantUser: (tenantId, userId) => managerRequest(`/api/manager/tenants/${tenantId}/users/${userId}`, {
+    method: 'DELETE'
+  }),
   getManagerUsers: () => managerRequest('/api/manager/users'),
+
   createManagerUser: (data) => managerRequest('/api/manager/users', {
     method: 'POST',
     body: JSON.stringify(data)

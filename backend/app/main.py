@@ -56,10 +56,8 @@ app.include_router(traceability.router, prefix="/api/traceability", tags=["trace
 def health_check():
     return {"status": "healthy"}
 
-# Mount Static Files & Vanilla Web SPA Frontend
+# Serve Pages & Static Files
 static_dir = Path(__file__).parent / "static"
-if static_dir.exists():
-    app.mount("/", StaticFiles(directory=str(static_dir), html=True), name="static")
 
 @app.get("/")
 def read_root():
@@ -67,3 +65,13 @@ def read_root():
     if index_file.exists():
         return FileResponse(str(index_file))
     return {"message": "Flow CMMS API"}
+
+@app.get("/gerenciador")
+def read_manager():
+    manager_file = static_dir / "manager.html"
+    if manager_file.exists():
+        return FileResponse(str(manager_file))
+    return FileResponse(str(static_dir / "index.html"))
+
+if static_dir.exists():
+    app.mount("/", StaticFiles(directory=str(static_dir), html=False), name="static")

@@ -244,8 +244,158 @@ def delete_tenant(
     return {"message": f"Cliente e banco de dados '{db_name}' removidos com sucesso!"}
 
 # ============================================================================
+# Gestão de Usuários do Cliente (Pelos Gestores da Unidade)
+# ============================================================================
+
+def _verify_tenant_access(tenant_id: int, current_user: ManagerUser, db: Session) -> Tenant:
+    tenant = db.query(Tenant).filter(Tenant.id == tenant_id).first()
+    if not tenant:
+        raise HTTPException(status_code=404, detail="Cliente não encontrado.")
+
+    if current_user.role != "superadmin":
+        allowed_ids = [t.id for t in current_user.assigned_tenants]
+        if tenant.id not in allowed_ids:
+            raise HTTPException(
+                status_code=403,
+                detail="Você não tem permissão para gerenciar os usuários deste cliente."
+            )
+    return tenant
+
+@router.get("/tenants/{tenant_id}/users")
+def list_tenant_users(
+    tenant_id: int,
+    current_user: ManagerUser = Depends(get_current_manager_user),
+    db: Session = Depends(get_master_db)
+):
+    """
+    Retorna os usuários cadastrados no banco de dados isolado deste cliente.
+    """
+    tenant = _verify_tenant_access(tenant_id, current_user, db)
+    tenant_session = TenantDatabaseManager.get_session(tenant.db_name)
+    try:
+        users = tenant_session.query(TenantUser).all()
+        return [
+            {
+                "id": u.id,
+                "username": u.username,
+                "email": u.email,
+                "role": u.role,
+                "is_active": u.is_active
+            }
+            for u in users
+        ]
+    finally:
+        tenant_session.close()
+
+@router.post("/tenants/{tenant_id}/users", status_code=status.HTTP_201_CREATED)
+def create_tenant_user(
+    tenant_id: int,
+    user_in: dict,
+    current_user: ManagerUser = Depends(get_current_manager_user),
+    db: Session = Depends(get_master_db)
+):
+    """
+    Cria um novo usuário diretamente no banco de dados isolado deste cliente.
+    """
+    tenant = _verify_tenant_access(tenant_id, current_user, db)
+    tenant_session = TenantDatabaseManager.get_session(tenant.db_name)
+    try:
+        username = user_in.get("username", "").strip()
+        email = user_in.get("email", "").strip()
+        password = user_in.get("password", "").strip()
+        role = user_in.get("role", "user")
+
+        if not username or not password or not email:
+            raise HTTPException(status_code=400, detail="Usuário, email e senha são obrigatórios.")
+
+        existing = tenant_session.query(TenantUser).filter(
+            (TenantUser.username == username) | (TenantUser.email == email)
+        ).first()
+        if existing:
+            raise HTTPException(status_code=400, detail="Nome de usuário ou email já cadastrado nesta unidade.")
+
+        new_user = TenantUser(
+            username=username,
+            email=email,
+            hashed_password=get_password_hash(password),
+            role=role,
+            is_active=user_in.get("is_active", True)
+        )
+        tenant_session.add(new_user)
+        tenant_session.commit()
+        tenant_session.refresh(new_user)
+
+        return {
+            "id": new_user.id,
+            "username": new_user.username,
+            "email": new_user.email,
+            "role": new_user.role,
+            "is_active": new_user.is_active
+        }
+    finally:
+        tenant_session.close()
+
+@router.put("/tenants/{tenant_id}/users/{user_id}")
+def update_tenant_user(
+    tenant_id: int,
+    user_id: int,
+    user_in: dict,
+    current_user: ManagerUser = Depends(get_current_manager_user),
+    db: Session = Depends(get_master_db)
+):
+    tenant = _verify_tenant_access(tenant_id, current_user, db)
+    tenant_session = TenantDatabaseManager.get_session(tenant.db_name)
+    try:
+        user = tenant_session.query(TenantUser).filter(TenantUser.id == user_id).first()
+        if not user:
+            raise HTTPException(status_code=404, detail="Usuário não encontrado nesta unidade.")
+
+        if "email" in user_in and user_in["email"]:
+            user.email = user_in["email"].strip()
+        if "role" in user_in and user_in["role"]:
+            user.role = user_in["role"]
+        if "is_active" in user_in:
+            user.is_active = bool(user_in["is_active"])
+        if "password" in user_in and user_in["password"]:
+            user.hashed_password = get_password_hash(user_in["password"].strip())
+
+        tenant_session.commit()
+        tenant_session.refresh(user)
+
+        return {
+            "id": user.id,
+            "username": user.username,
+            "email": user.email,
+            "role": user.role,
+            "is_active": user.is_active
+        }
+    finally:
+        tenant_session.close()
+
+@router.delete("/tenants/{tenant_id}/users/{user_id}")
+def delete_tenant_user(
+    tenant_id: int,
+    user_id: int,
+    current_user: ManagerUser = Depends(get_current_manager_user),
+    db: Session = Depends(get_master_db)
+):
+    tenant = _verify_tenant_access(tenant_id, current_user, db)
+    tenant_session = TenantDatabaseManager.get_session(tenant.db_name)
+    try:
+        user = tenant_session.query(TenantUser).filter(TenantUser.id == user_id).first()
+        if not user:
+            raise HTTPException(status_code=404, detail="Usuário não encontrado nesta unidade.")
+
+        tenant_session.delete(user)
+        tenant_session.commit()
+        return {"message": "Usuário excluído com sucesso da unidade."}
+    finally:
+        tenant_session.close()
+
+# ============================================================================
 # Gestão de Usuários Gerenciadores (Apenas Superadmin)
 # ============================================================================
+
 
 @router.get("/users", response_model=List[ManagerUserResponse])
 def list_manager_users(

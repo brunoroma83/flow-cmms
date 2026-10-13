@@ -191,3 +191,78 @@ def test_rbac_manager_sees_only_assigned_tenants(client, superadmin_token):
         f"/api/manager/tenants/{tenant_beta.id}?drop_database=true",
         headers={"Authorization": f"Bearer {superadmin_token}"}
     )
+
+def test_unit_manager_can_create_client_users_and_client_logs_in(client, superadmin_token):
+    slug = "hospital_santa_maria"
+    # 1. Create a tenant
+    res_t = client.post(
+        "/api/manager/tenants",
+        headers={"Authorization": f"Bearer {superadmin_token}"},
+        json={
+            "name": "Hospital Santa Maria",
+            "slug": slug,
+            "description": "Unidade de teste para gestor criar usuarios"
+        }
+    )
+    assert res_t.status_code == 201
+    tenant_id = res_t.json()["id"]
+
+    # 2. Gestor creates a technician user for this tenant
+    res_u = client.post(
+        f"/api/manager/tenants/{tenant_id}/users",
+        headers={"Authorization": f"Bearer {superadmin_token}"},
+        json={
+            "username": "tecnico_joao",
+            "email": "joao@santamaria.com",
+            "password": "senha_do_joao_123",
+            "role": "technician"
+        }
+    )
+    assert res_u.status_code == 201
+    assert res_u.json()["username"] == "tecnico_joao"
+
+    # 3. List users for this tenant
+    res_list = client.get(
+        f"/api/manager/tenants/{tenant_id}/users",
+        headers={"Authorization": f"Bearer {superadmin_token}"}
+    )
+    assert res_list.status_code == 200
+    usernames = [u["username"] for u in res_list.json()]
+    assert "tecnico_joao" in usernames
+
+    # 4. Now user 'tecnico_joao' logs in directly via tenant portal with header X-Tenant-ID
+    res_client_login = client.post(
+        "/api/auth/token",
+        headers={"X-Tenant-ID": slug},
+        json={"username": "tecnico_joao", "password": "senha_do_joao_123"}
+    )
+    assert res_client_login.status_code == 200
+    user_token = res_client_login.json()["access_token"]
+    assert user_token is not None
+
+    # 5. Access /api/auth/me with tenant token
+    res_me = client.get(
+        "/api/auth/me",
+        headers={
+            "X-Tenant-ID": slug,
+            "Authorization": f"Bearer {user_token}"
+        }
+    )
+    assert res_me.status_code == 200
+    assert res_me.json()["username"] == "tecnico_joao"
+    assert res_me.json()["role"] == "technician"
+
+    # 6. Verify static routes: /gerenciador and /
+    res_mgr_route = client.get("/gerenciador")
+    assert res_mgr_route.status_code == 200
+    assert "Gerenciador Central de Unidades" in res_mgr_route.text
+
+    res_root_route = client.get("/")
+    assert res_root_route.status_code == 200
+
+    # Clean up
+    client.delete(
+        f"/api/manager/tenants/{tenant_id}?drop_database=true",
+        headers={"Authorization": f"Bearer {superadmin_token}"}
+    )
+
