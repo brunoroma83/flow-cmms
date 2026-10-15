@@ -413,5 +413,19 @@ def test_scoped_mcp_token_generation_and_tenant_isolation(client, superadmin_tok
         headers={"Authorization": f"Bearer {superadmin_token}"}
     )
 
+def test_public_tenant_info_endpoint(client):
+    # Test valid tenant info for default 'matriz'
+    res = client.get("/api/auth/tenant-info?s=matriz")
+    assert res.status_code == 200
+    data = res.json()
+    assert data["slug"] == "matriz"
+    assert "name" in data
+    assert len(data["name"]) > 0
 
+    # Test invalid tenant returns 404
+    res_404 = client.get("/api/auth/tenant-info?s=tenant_inexistente_999")
+    assert res_404.status_code == 404
 
+    # Test missing slug returns 400
+    res_400 = client.get("/api/auth/tenant-info")
+    assert res_400.status_code == 400

@@ -16,15 +16,33 @@
 
     <!-- Authenticated App Layout -->
     <div id="app-container" class="app-layout" style="display: none;">
+      <!-- Mobile Sidebar Backdrop Overlay -->
+      <div id="sidebar-overlay" class="sidebar-overlay"></div>
+
       <!-- Sidebar Navigation -->
-      <aside class="sidebar">
+      <aside class="sidebar" id="sidebar">
         <div class="sidebar-header">
-          <div class="sidebar-logo">🏥</div>
-          <div class="sidebar-brand">
-            <h1>Flow CMMS</h1>
-            <span>Engenharia Clínica</span>
+          <div class="sidebar-brand-wrapper">
+            <div class="sidebar-logo">🏥</div>
+            <div class="sidebar-brand">
+              <h1>Flow CMMS</h1>
+              <span>Engenharia Clínica</span>
+            </div>
+          </div>
+          <button id="btn-toggle-sidebar" class="btn-toggle-sidebar" title="Recolher menu" aria-label="Recolher menu">
+            <span class="toggle-icon">◀</span>
+          </button>
+        </div>
+
+        <!-- Identificação da Unidade Ativa -->
+        <div class="sidebar-unit-badge" id="sidebar-unit-badge" title="Unidade Hospitalar">
+          <span class="unit-badge-icon">🏥</span>
+          <div class="unit-badge-info">
+            <span class="unit-badge-tag">UNIDADE</span>
+            <span class="unit-badge-name" id="sidebar-unit-name">Hospital</span>
           </div>
         </div>
+
         <nav class="sidebar-nav">
           <a href="#dashboard" class="nav-item" id="nav-dashboard">
             <span class="nav-icon">📊</span>
@@ -52,8 +70,6 @@
           </a>
         </nav>
 
-
-
         <div class="sidebar-footer">
           <div class="user-profile">
             <div class="user-avatar" id="sidebar-user-avatar">A</div>
@@ -62,15 +78,20 @@
               <span class="user-role" id="sidebar-user-role">Engenharia Clínica</span>
             </div>
           </div>
-          <button id="btn-logout" class="btn-logout" title="Sair do Sistema">🚪 Sair</button>
+          <button id="btn-logout" class="btn-logout" title="Sair do Sistema">🚪 <span class="logout-label">Sair</span></button>
         </div>
       </aside>
 
       <!-- Main Workspace -->
-      <div class="main-wrapper">
+      <div class="main-wrapper" id="main-wrapper">
         <header class="main-header">
-          <div class="header-title">
-            <h2 id="page-title">Dashboard</h2>
+          <div class="header-left">
+            <button id="btn-mobile-menu" class="btn-mobile-menu" aria-label="Abrir Menu Lateral" title="Abrir Menu Lateral">
+              <span>☰</span>
+            </button>
+            <div class="header-title">
+              <h2 id="page-title">Dashboard</h2>
+            </div>
           </div>
           <div class="header-status">
             <span class="status-indicator online">● Sistema Conectado</span>

@@ -2,6 +2,8 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from app import models, schemas
 from app.database import get_db
+from app.db.session import get_master_db
+from app.models.master import Tenant
 from fastapi.security import OAuth2PasswordBearer
 from app.auth.security import verify_password, get_password_hash, create_access_token, verify_token
 from datetime import timedelta
@@ -9,6 +11,21 @@ from app.core.config import settings
 
 router = APIRouter()
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/auth/token")
+
+@router.get("/tenant-info")
+def get_tenant_info(s: str = None, slug: str = None, db: Session = Depends(get_master_db)):
+    target_slug = s or slug
+    if not target_slug:
+        raise HTTPException(status_code=400, detail="Slug do tenant não informado")
+    tenant = db.query(Tenant).filter(Tenant.slug == target_slug.lower().strip(), Tenant.is_active == True).first()
+    if not tenant:
+        raise HTTPException(status_code=404, detail="Unidade não encontrada ou inativa")
+    return {
+        "slug": tenant.slug,
+        "name": tenant.name,
+        "description": tenant.description
+    }
+
 
 def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
     username = verify_token(token)

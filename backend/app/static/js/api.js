@@ -197,6 +197,16 @@ export const api = {
     removeUser();
     window.location.hash = '#login';
   },
+  getTenantInfo: async (slug) => {
+    if (!slug) return null;
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/auth/tenant-info?s=${encodeURIComponent(slug)}`);
+      if (!res.ok) return null;
+      return await res.json();
+    } catch (e) {
+      return null;
+    }
+  },
 
 
   // Equipment Assets

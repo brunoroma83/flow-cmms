@@ -1,4 +1,4 @@
-import api, { getToken, getUser } from './api.js';
+import api, { getToken, getUser, getActiveTenant } from './api.js';
 import { renderLoginView } from './views/loginView.js';
 import { renderDashboardView } from './views/dashboardView.js';
 import { renderAssetsView } from './views/assetsView.js';
@@ -20,6 +20,15 @@ const userAvatar = document.getElementById('sidebar-user-avatar');
 const userName = document.getElementById('sidebar-user-name');
 const userRole = document.getElementById('sidebar-user-role');
 
+// Sidebar & Responsive Elements
+const sidebar = document.getElementById('sidebar');
+const mainWrapper = document.getElementById('main-wrapper');
+const btnToggleSidebar = document.getElementById('btn-toggle-sidebar');
+const btnMobileMenu = document.getElementById('btn-mobile-menu');
+const sidebarOverlay = document.getElementById('sidebar-overlay');
+const sidebarUnitBadge = document.getElementById('sidebar-unit-badge');
+const sidebarUnitName = document.getElementById('sidebar-unit-name');
+
 // Update Clock
 function updateClock() {
   const now = new Date();
@@ -29,6 +38,93 @@ function updateClock() {
 }
 setInterval(updateClock, 30000);
 updateClock();
+
+// Sidebar Collapse State (Desktop / Tablet)
+function initSidebarState() {
+  const isCollapsed = localStorage.getItem('flow_cmms_sidebar_collapsed') === 'true';
+  applySidebarState(isCollapsed);
+}
+
+function applySidebarState(collapsed) {
+  if (collapsed) {
+    sidebar.classList.add('collapsed');
+    mainWrapper.classList.add('sidebar-collapsed');
+    if (btnToggleSidebar) btnToggleSidebar.setAttribute('title', 'Expandir menu');
+  } else {
+    sidebar.classList.remove('collapsed');
+    mainWrapper.classList.remove('sidebar-collapsed');
+    if (btnToggleSidebar) btnToggleSidebar.setAttribute('title', 'Recolher menu');
+  }
+}
+
+if (btnToggleSidebar) {
+  btnToggleSidebar.addEventListener('click', () => {
+    const isCollapsed = sidebar.classList.contains('collapsed');
+    const newState = !isCollapsed;
+    localStorage.setItem('flow_cmms_sidebar_collapsed', newState);
+    applySidebarState(newState);
+  });
+}
+
+// Mobile Sidebar Drawer Controls
+function closeMobileSidebar() {
+  if (sidebar) sidebar.classList.remove('mobile-open');
+  if (sidebarOverlay) sidebarOverlay.classList.remove('active');
+}
+
+if (btnMobileMenu) {
+  btnMobileMenu.addEventListener('click', () => {
+    const isOpen = sidebar.classList.contains('mobile-open');
+    if (isOpen) {
+      closeMobileSidebar();
+    } else {
+      sidebar.classList.add('mobile-open');
+      sidebarOverlay.classList.add('active');
+    }
+  });
+}
+
+if (sidebarOverlay) {
+  sidebarOverlay.addEventListener('click', closeMobileSidebar);
+}
+
+window.addEventListener('resize', () => {
+  if (window.innerWidth > 768) {
+    closeMobileSidebar();
+  }
+});
+
+// Unit Name Loader
+async function updateSidebarUnitName() {
+  const slug = getActiveTenant();
+  if (!slug) {
+    if (sidebarUnitName) sidebarUnitName.textContent = 'Unidade Hospitalar';
+    return;
+  }
+
+  // Quick fallback or cached name
+  const cachedName = localStorage.getItem(`flow_cmms_unit_name_${slug}`);
+  if (cachedName && sidebarUnitName) {
+    sidebarUnitName.textContent = cachedName;
+  } else if (sidebarUnitName) {
+    sidebarUnitName.textContent = slug.toUpperCase();
+  }
+
+  try {
+    const info = await api.getTenantInfo(slug);
+    if (info && info.name && sidebarUnitName) {
+      sidebarUnitName.textContent = info.name;
+      if (sidebarUnitBadge) sidebarUnitBadge.setAttribute('title', `${info.name} (${info.slug})`);
+      localStorage.setItem(`flow_cmms_unit_name_${slug}`, info.name);
+    }
+  } catch (e) {
+    console.warn('Could not load unit name info:', e);
+  }
+}
+
+// Initialize sidebar responsive state
+initSidebarState();
+
 
 // SPA Router
 async function router() {
@@ -49,6 +145,12 @@ async function router() {
   // Authenticated State
   authContainer.style.display = 'none';
   appContainer.style.display = 'flex';
+
+  // Close mobile drawer on route navigation
+  closeMobileSidebar();
+
+  // Update Unit Name in Sidebar
+  updateSidebarUnitName();
 
   // Update User Profile in Sidebar
   const uname = user ? user.username : 'admin';
@@ -102,6 +204,11 @@ async function router() {
   }
 }
 
+// Close mobile sidebar on nav click
+document.querySelectorAll('.nav-item').forEach(item => {
+  item.addEventListener('click', closeMobileSidebar);
+});
+
 // Logout Listener
 btnLogout.addEventListener('click', () => {
   api.logout();
@@ -110,3 +217,4 @@ btnLogout.addEventListener('click', () => {
 // Hashchange Router Listener
 window.addEventListener('hashchange', router);
 window.addEventListener('DOMContentLoaded', router);
+
