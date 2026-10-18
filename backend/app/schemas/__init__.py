@@ -1,6 +1,6 @@
 from .equipment import Equipment, EquipmentCreate, EquipmentUpdate
 from .maintenance import Maintenance, MaintenanceCreate, MaintenanceUpdate, MaintenanceEntry, MaintenanceEntryCreate, MaintenanceEntryBase, RequesterTicketCreate
-from .user import User, UserCreate, UserUpdate, LoginForm, LoginResponse, Token, PasswordChange, MCPTokenResponse, RequesterLoginRequest
+from .user import User, UserCreate, UserUpdate, LoginForm, LoginResponse, Token, PasswordChange, MCPTokenResponse, RequesterLoginRequest, TokenLoginRequest
 from .report import Report, ReportCreate, ReportUpdate
 from .inventory import InventoryItem, InventoryItemCreate, InventoryItemUpdate, StockAdjustment
 from .traceability import TraceabilityRecord, TraceabilityRecordCreate, TraceabilityRecordUpdate
@@ -13,7 +13,7 @@ from .master import (
 __all__ = [
     "Equipment", "EquipmentCreate", "EquipmentUpdate",
     "Maintenance", "MaintenanceCreate", "MaintenanceUpdate", "MaintenanceEntry", "MaintenanceEntryCreate", "MaintenanceEntryBase", "RequesterTicketCreate",
-    "User", "UserCreate", "UserUpdate", "LoginForm", "LoginResponse", "Token", "PasswordChange", "MCPTokenResponse", "RequesterLoginRequest",
+    "User", "UserCreate", "UserUpdate", "LoginForm", "LoginResponse", "Token", "PasswordChange", "MCPTokenResponse", "RequesterLoginRequest", "TokenLoginRequest",
     "Report", "ReportCreate", "ReportUpdate",
     "InventoryItem", "InventoryItemCreate", "InventoryItemUpdate", "StockAdjustment",
     "TraceabilityRecord", "TraceabilityRecordCreate", "TraceabilityRecordUpdate",

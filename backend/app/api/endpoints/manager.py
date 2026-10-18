@@ -3,6 +3,7 @@ from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.orm import Session
 from typing import List, Optional
 from datetime import timedelta
+import secrets
 
 from app.db.session import get_master_db
 from app.db.tenant_manager import TenantDatabaseManager
@@ -345,8 +346,12 @@ def list_tenant_users(
     tenant_session = TenantDatabaseManager.get_session(tenant.db_name)
     try:
         users = tenant_session.query(TenantUser).all()
-        return [
-            {
+        res = []
+        for u in users:
+            if not u.requester_token:
+                u.requester_token = secrets.token_urlsafe(32)
+                tenant_session.commit()
+            res.append({
                 "id": u.id,
                 "username": u.username,
                 "full_name": u.full_name or u.username,
@@ -354,10 +359,10 @@ def list_tenant_users(
                 "role": u.role,
                 "sector": u.sector,
                 "phone_extension": u.phone_extension,
+                "requester_token": u.requester_token,
                 "is_active": u.is_active
-            }
-            for u in users
-        ]
+            })
+        return res
     finally:
         tenant_session.close()
 
@@ -396,6 +401,7 @@ def create_tenant_user(
             full_name=full_name,
             sector=sector,
             phone_extension=phone_extension,
+            requester_token=secrets.token_urlsafe(32),
             email=email,
             hashed_password=get_password_hash(password),
             role=role,
@@ -413,7 +419,37 @@ def create_tenant_user(
             "role": new_user.role,
             "sector": new_user.sector,
             "phone_extension": new_user.phone_extension,
+            "requester_token": new_user.requester_token,
             "is_active": new_user.is_active
+        }
+    finally:
+        tenant_session.close()
+
+@router.post("/tenants/{tenant_id}/users/{user_id}/regenerate-token")
+def regenerate_tenant_user_token(
+    tenant_id: int,
+    user_id: int,
+    current_user: ManagerUser = Depends(get_current_manager_user),
+    db: Session = Depends(get_master_db)
+):
+    """
+    Regenera o token de acesso direto para o usuário na unidade.
+    """
+    tenant = _verify_tenant_access(tenant_id, current_user, db)
+    tenant_session = TenantDatabaseManager.get_session(tenant.db_name)
+    try:
+        user = tenant_session.query(TenantUser).filter(TenantUser.id == user_id).first()
+        if not user:
+            raise HTTPException(status_code=404, detail="Usuário não encontrado nesta unidade.")
+
+        user.requester_token = secrets.token_urlsafe(32)
+        tenant_session.commit()
+        tenant_session.refresh(user)
+
+        return {
+            "id": user.id,
+            "username": user.username,
+            "requester_token": user.requester_token
         }
     finally:
         tenant_session.close()

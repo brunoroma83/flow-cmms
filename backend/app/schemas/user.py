@@ -8,6 +8,7 @@ class UserBase(BaseModel):
     full_name: Optional[str] = None
     sector: Optional[str] = None
     phone_extension: Optional[str] = None
+    requester_token: Optional[str] = None
 
 class UserCreate(UserBase):
     password: str
@@ -20,6 +21,7 @@ class UserUpdate(BaseModel):
     full_name: Optional[str] = None
     sector: Optional[str] = None
     phone_extension: Optional[str] = None
+    requester_token: Optional[str] = None
     is_active: Optional[bool] = None
 
 class User(UserBase):
@@ -38,6 +40,9 @@ class RequesterLoginRequest(BaseModel):
     full_name: Optional[str] = None
     sector: Optional[str] = None
     contact: Optional[str] = None
+
+class TokenLoginRequest(BaseModel):
+    token: str
 
 
 class Token(BaseModel):

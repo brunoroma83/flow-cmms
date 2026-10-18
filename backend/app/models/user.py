@@ -12,4 +12,5 @@ class User(Base):
     role = Column(String(50))  # admin, technician, user, solicitante
     full_name = Column(String(255), nullable=True)
     sector = Column(String(100), nullable=True)
-    phone_extension = Column(String(50), nullable=True)
+    phone_extension = Column(String(50), nullable=True)
+    requester_token = Column(String(64), unique=True, index=True, nullable=True)

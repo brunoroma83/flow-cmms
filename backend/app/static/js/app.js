@@ -1,4 +1,4 @@
-import api, { getToken, getUser, getActiveTenant } from './api.js';
+import api, { getToken, getUser, getActiveTenant, setActiveTenant } from './api.js';
 import { renderLoginView } from './views/loginView.js';
 import { renderDashboardView } from './views/dashboardView.js';
 import { renderAssetsView } from './views/assetsView.js';
@@ -130,6 +130,47 @@ initSidebarState();
 
 // SPA Router
 async function router() {
+  // 1. Check for Direct Token URL Access: ?s=slug-hospital&token=xyz or /#...?s=...&token=...
+  const searchParams = new URLSearchParams(window.location.search);
+  const hashQuery = window.location.hash.includes('?') ? window.location.hash.split('?')[1] : '';
+  const hashParams = new URLSearchParams(hashQuery);
+
+  const directToken = searchParams.get('token') || hashParams.get('token');
+  const directTenant = searchParams.get('s') || searchParams.get('tenant') || hashParams.get('s') || hashParams.get('tenant');
+
+  if (directToken) {
+    if (directTenant) {
+      setActiveTenant(directTenant);
+    }
+    try {
+      authContainer.style.display = 'flex';
+      appContainer.style.display = 'none';
+      authContainer.innerHTML = `
+        <div style="background:white; border-radius:12px; padding:36px; box-shadow:0 10px 25px rgba(0,0,0,0.1); text-align:center; max-width:420px; width:90%; border:1px solid #e2e8f0;">
+          <div style="font-size:2.5rem; margin-bottom:12px;">🏥</div>
+          <h3 style="margin:0 0 8px 0; color:#1e293b;">Acessando Unidade...</h3>
+          <p style="color:#64748b; font-size:0.9rem; margin:0 0 16px 0;">Autenticando via link direto sem senha.</p>
+          <div class="loading-spinner">Validando credenciais...</div>
+        </div>
+      `;
+
+      await api.tokenLogin(directToken);
+
+      // Limpar token da URL por segurança
+      const cleanUrl = window.location.pathname + (directTenant ? `?s=${encodeURIComponent(directTenant)}` : '');
+      window.history.replaceState({}, document.title, cleanUrl);
+
+      // Redireciona diretamente para o portal do solicitante
+      window.location.hash = '#requester-create';
+      return router();
+    } catch (err) {
+      console.error('Falha na autenticação via token:', err);
+      const cleanUrl = window.location.pathname + (directTenant ? `?s=${encodeURIComponent(directTenant)}` : '');
+      window.history.replaceState({}, document.title, cleanUrl);
+      alert(`Não foi possível acessar a unidade pelo link direto: ${err.message}`);
+    }
+  }
+
   const token = getToken();
   const user = getUser();
   const isRequester = user && user.role === 'solicitante';

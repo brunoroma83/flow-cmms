@@ -57,7 +57,7 @@ export function renderLoginView(container, onLoginSuccess) {
             autocomplete="username"
           />
           <small style="color:#64748b; font-size:0.75rem; margin-top:2px; display:block;">
-            Não requer senha. Digite seu identificador para abrir chamados e acompanhar suas ordens.
+            Não requer senha. Digite seu identificador ou acesse diretamente via link com token fornecido pela administração.
           </small>
         </div>
 

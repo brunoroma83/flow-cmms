@@ -7,6 +7,7 @@ from app.models.master import Tenant
 from fastapi.security import OAuth2PasswordBearer
 from app.auth.security import verify_password, get_password_hash, create_access_token, verify_token
 from datetime import timedelta
+import secrets
 from app.core.config import settings
 
 router = APIRouter()
@@ -84,6 +85,7 @@ def requester_login(data: schemas.RequesterLoginRequest, db: Session = Depends(g
             email=default_email,
             hashed_password=get_password_hash("solicitante_auto_pwd"),
             role="solicitante",
+            requester_token=secrets.token_urlsafe(32),
             is_active=True
         )
         db.add(user)
@@ -102,6 +104,9 @@ def requester_login(data: schemas.RequesterLoginRequest, db: Session = Depends(g
             updated = True
         if data.contact and not user.phone_extension:
             user.phone_extension = data.contact.strip()
+            updated = True
+        if not user.requester_token:
+            user.requester_token = secrets.token_urlsafe(32)
             updated = True
         if updated:
             db.commit()
@@ -123,10 +128,51 @@ def requester_login(data: schemas.RequesterLoginRequest, db: Session = Depends(g
             "role": user.role,
             "sector": user.sector or data.sector,
             "phone_extension": user.phone_extension or data.contact,
-            "contact": user.phone_extension or data.contact
+            "contact": user.phone_extension or data.contact,
+            "requester_token": user.requester_token
         }
     }
 
+
+@router.post("/token-login")
+def token_login(
+    data: schemas.TokenLoginRequest,
+    db: Session = Depends(get_db)
+):
+    """
+    Autenticação sem senha via token de acesso direto presente na URL (?s=slug&token=xyz).
+    """
+    token_str = data.token.strip()
+    if not token_str:
+        raise HTTPException(status_code=400, detail="Token de acesso é obrigatório.")
+
+    user = db.query(models.User).filter(models.User.requester_token == token_str).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="Link ou token de acesso inválido ou expirado.")
+
+    if not user.is_active:
+        raise HTTPException(status_code=403, detail="Este usuário está inativo nesta unidade.")
+
+    access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
+    access_token = create_access_token(
+        data={"sub": user.username, "role": user.role}, expires_delta=access_token_expires
+    )
+
+    return {
+        "access_token": access_token,
+        "token_type": "bearer",
+        "user": {
+            "id": user.id,
+            "username": user.username,
+            "full_name": user.full_name or user.username,
+            "email": user.email,
+            "role": user.role,
+            "sector": user.sector,
+            "phone_extension": user.phone_extension,
+            "contact": user.phone_extension,
+            "requester_token": user.requester_token
+        }
+    }
 
 
 @router.post("/change-password")

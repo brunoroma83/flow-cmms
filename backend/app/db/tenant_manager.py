@@ -155,6 +155,16 @@ class TenantDatabaseManager:
                 conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS full_name VARCHAR(255);"))
                 conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS sector VARCHAR(100);"))
                 conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS phone_extension VARCHAR(50);"))
+                conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS requester_token VARCHAR(64);"))
+                conn.execute(text("CREATE UNIQUE INDEX IF NOT EXISTS ix_users_requester_token ON users (requester_token);"))
+                
+                # Backfill requester_token for users without one
+                import secrets
+                users_without_token = conn.execute(text("SELECT id FROM users WHERE requester_token IS NULL;")).fetchall()
+                for u in users_without_token:
+                    new_tok = secrets.token_urlsafe(32)
+                    conn.execute(text("UPDATE users SET requester_token = :token WHERE id = :uid;"), {"token": new_tok, "uid": u[0]})
+
                 conn.commit()
 
         except Exception as e:

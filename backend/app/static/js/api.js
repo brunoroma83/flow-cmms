@@ -153,6 +153,9 @@ export const api = {
   deleteTenantUser: (tenantId, userId) => managerRequest(`/api/manager/tenants/${tenantId}/users/${userId}`, {
     method: 'DELETE'
   }),
+  regenerateTenantUserToken: (tenantId, userId) => managerRequest(`/api/manager/tenants/${tenantId}/users/${userId}/regenerate-token`, {
+    method: 'POST'
+  }),
   getManagerUsers: () => managerRequest('/api/manager/users'),
 
   createManagerUser: (data) => managerRequest('/api/manager/users', {
@@ -245,6 +248,15 @@ export const api = {
     const data = await request('/api/auth/requester-login', {
       method: 'POST',
       body: JSON.stringify({ username, full_name, sector, contact })
+    });
+    setToken(data.access_token);
+    setUser(data.user);
+    return data;
+  },
+  tokenLogin: async (token) => {
+    const data = await request('/api/auth/token-login', {
+      method: 'POST',
+      body: JSON.stringify({ token })
     });
     setToken(data.access_token);
     setUser(data.user);

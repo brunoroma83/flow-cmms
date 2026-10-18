@@ -279,7 +279,7 @@ async function loadTenantsTable(isSuperAdmin) {
 async function openTenantUsersModal(tenantId, tenantName, tenantSlug) {
   modalContainer.innerHTML = `
     <div class="modal-backdrop" style="position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); display:flex; justify-content:center; align-items:center; z-index:9999;">
-      <div class="modal-content" style="background:#fff; border-radius:12px; width:95%; max-width:700px; padding:24px; max-height:85vh; overflow-y:auto; box-shadow:0 10px 25px rgba(0,0,0,0.15);">
+      <div class="modal-content" style="background:#fff; border-radius:12px; width:95%; max-width:860px; padding:24px; max-height:85vh; overflow-y:auto; box-shadow:0 10px 25px rgba(0,0,0,0.15);">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
           <div>
             <h3 style="margin:0; color:#0f172a;">👥 Usuários de Acesso: ${tenantName}</h3>
@@ -338,14 +338,62 @@ async function openTenantUsersModal(tenantId, tenantName, tenantSlug) {
                 <td>${u.email}</td>
                 <td><span class="badge badge-secondary">${u.role}</span></td>
                 <td><span class="badge ${u.is_active ? 'badge-success' : 'badge-danger'}">${u.is_active ? 'Ativo' : 'Inativo'}</span></td>
-                <td style="text-align:right;">
-                  <button class="btn btn-sm btn-danger btn-del-tuser" data-uid="${u.id}" data-uname="${u.username}">🗑️</button>
+                <td style="text-align:right; white-space:nowrap;">
+                  <button class="btn btn-sm btn-info btn-copy-token-link" data-token="${u.requester_token || ''}" data-uname="${u.username}" title="Copiar link de acesso direto sem senha">
+                    🔗 Link Direto
+                  </button>
+                  <button class="btn btn-sm btn-outline btn-regen-token" data-uid="${u.id}" data-uname="${u.username}" title="Gerar novo token de acesso (invalida o link anterior)">
+                    🔄
+                  </button>
+                  <button class="btn btn-sm btn-danger btn-del-tuser" data-uid="${u.id}" data-uname="${u.username}" title="Excluir usuário">
+                    🗑️
+                  </button>
                 </td>
               </tr>
             `).join('')}
           </tbody>
         </table>
       `;
+
+      document.querySelectorAll('.btn-copy-token-link').forEach(btn => {
+        btn.onclick = async () => {
+          const tok = btn.getAttribute('data-token');
+          if (!tok) {
+            alert('Este usuário ainda não possui um token gerado. Clique no botão 🔄 para gerar.');
+            return;
+          }
+          const directUrl = `${window.location.origin}/?s=${encodeURIComponent(tenantSlug)}&token=${tok}`;
+          try {
+            await navigator.clipboard.writeText(directUrl);
+            const origText = btn.innerHTML;
+            btn.innerHTML = '✅ Copiado!';
+            btn.style.background = '#10b981';
+            btn.style.color = '#fff';
+            setTimeout(() => {
+              btn.innerHTML = origText;
+              btn.style.background = '';
+              btn.style.color = '';
+            }, 2500);
+          } catch (e) {
+            prompt('Copie o link de acesso direto abaixo:', directUrl);
+          }
+        };
+      });
+
+      document.querySelectorAll('.btn-regen-token').forEach(btn => {
+        btn.onclick = async () => {
+          const uid = btn.getAttribute('data-uid');
+          const uname = btn.getAttribute('data-uname');
+          if (confirm(`Gerar novo link de acesso para o usuário "${uname}"? O link anterior deixará de funcionar imediatamente.`)) {
+            try {
+              await api.regenerateTenantUserToken(tenantId, uid);
+              loadUsers();
+            } catch (e) {
+              alert(`Erro ao regerar token: ${e.message}`);
+            }
+          }
+        };
+      });
 
       document.querySelectorAll('.btn-del-tuser').forEach(btn => {
         btn.onclick = async () => {

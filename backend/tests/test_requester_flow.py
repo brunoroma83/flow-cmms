@@ -154,3 +154,87 @@ def test_requester_full_details_and_technician_visibility(client):
     my_list = res_my.json()
     assert any(o["id"] == os_id for o in my_list)
 
+def test_requester_direct_url_token_login_and_token_regeneration(client):
+    # 1. Login do superadmin no gerenciador
+    res_mgr = client.post(
+        "/api/manager/auth/token",
+        json={"username": "superadmin", "password": "superadmin123"}
+    )
+    assert res_mgr.status_code == 200
+    mgr_token = res_mgr.json()["access_token"]
+
+    # Obter id do tenant matriz
+    res_tenants = client.get("/api/manager/tenants", headers={"Authorization": f"Bearer {mgr_token}"})
+    assert res_tenants.status_code == 200
+    matriz_tenant = next(t for t in res_tenants.json() if t["slug"] == "matriz")
+    tenant_id = matriz_tenant["id"]
+
+    # 2. Criar novo usuário solicitante na unidade via Manager
+    res_create = client.post(
+        f"/api/manager/tenants/{tenant_id}/users",
+        headers={"Authorization": f"Bearer {mgr_token}"},
+        json={
+            "username": "enfermeiro_pedro",
+            "full_name": "Pedro Alcantara",
+            "email": "pedro@hospitalmatriz.com",
+            "password": "temporary_password_123",
+            "role": "solicitante",
+            "sector": "Pronto Socorro Adulto",
+            "phone_extension": "4401"
+        }
+    )
+    assert res_create.status_code == 201
+    created_user = res_create.json()
+    user_id = created_user["id"]
+    direct_token = created_user["requester_token"]
+    assert direct_token is not None and len(direct_token) >= 20
+
+    # 3. Acesso direto via URL com Token sem senha (POST /api/auth/token-login)
+    res_token_login = client.post(
+        "/api/auth/token-login",
+        headers={"X-Tenant-ID": "matriz"},
+        json={"token": direct_token}
+    )
+    assert res_token_login.status_code == 200
+    login_data = res_token_login.json()
+    assert "access_token" in login_data
+    assert login_data["user"]["username"] == "enfermeiro_pedro"
+    assert login_data["user"]["full_name"] == "Pedro Alcantara"
+    assert login_data["user"]["role"] == "solicitante"
+    assert login_data["user"]["sector"] == "Pronto Socorro Adulto"
+
+    # 4. Tentativa de login com token inválido
+    res_invalid = client.post(
+        "/api/auth/token-login",
+        headers={"X-Tenant-ID": "matriz"},
+        json={"token": "token_inexistente_123456"}
+    )
+    assert res_invalid.status_code == 404
+
+    # 5. Administrador regenera o token do usuário
+    res_regen = client.post(
+        f"/api/manager/tenants/{tenant_id}/users/{user_id}/regenerate-token",
+        headers={"Authorization": f"Bearer {mgr_token}"}
+    )
+    assert res_regen.status_code == 200
+    new_token = res_regen.json()["requester_token"]
+    assert new_token != direct_token
+
+    # 6. O token antigo agora deve ser rejeitado (404)
+    res_old_token = client.post(
+        "/api/auth/token-login",
+        headers={"X-Tenant-ID": "matriz"},
+        json={"token": direct_token}
+    )
+    assert res_old_token.status_code == 404
+
+    # 7. O novo token funciona perfeitamente
+    res_new_login = client.post(
+        "/api/auth/token-login",
+        headers={"X-Tenant-ID": "matriz"},
+        json={"token": new_token}
+    )
+    assert res_new_login.status_code == 200
+    assert res_new_login.json()["user"]["username"] == "enfermeiro_pedro"
+
+
