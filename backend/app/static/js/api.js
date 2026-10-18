@@ -241,10 +241,10 @@ export const api = {
     method: 'POST',
     body: JSON.stringify(entryData)
   }),
-  requesterLogin: async (username, sector = '', contact = '') => {
+  requesterLogin: async (username, full_name = '', sector = '', contact = '') => {
     const data = await request('/api/auth/requester-login', {
       method: 'POST',
-      body: JSON.stringify({ username, sector, contact })
+      body: JSON.stringify({ username, full_name, sector, contact })
     });
     setToken(data.access_token);
     setUser(data.user);

@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
+from sqlalchemy import or_, func
 from typing import List, Optional
 from app import models, schemas
 from app.database import get_db
@@ -18,7 +19,13 @@ def read_maintenance(
     if equipment_id:
         query = query.filter(models.Maintenance.equipment_id == equipment_id)
     if requester_name:
-        query = query.filter(models.Maintenance.requester_name == requester_name.strip().lower())
+        clean_req = requester_name.strip().lower()
+        query = query.filter(
+            or_(
+                func.lower(models.Maintenance.requester_name) == clean_req,
+                func.lower(models.Maintenance.requester_name).ilike(f"%{clean_req}%")
+            )
+        )
     maintenance = query.order_by(models.Maintenance.created_at.desc()).offset(skip).limit(limit).all()
     return maintenance
 
@@ -32,15 +39,34 @@ def create_requester_ticket(ticket: schemas.RequesterTicketCreate, db: Session =
     if not equipment:
         raise HTTPException(status_code=404, detail="Equipamento selecionado não foi encontrado.")
 
+    # Busca usuário no banco para complementar ou enriquecer nome completo, setor e ramal
+    user = db.query(models.User).filter(
+        func.lower(models.User.username) == ticket.requester_name.strip().lower()
+    ).first()
+
+    if user and user.full_name:
+        requester_display = f"{user.full_name} ({user.username})"
+    else:
+        requester_display = ticket.requester_name.strip()
+
+    requester_sector = (
+        ticket.requester_sector.strip() if ticket.requester_sector
+        else (user.sector if user and user.sector else equipment.location)
+    )
+    requester_contact = (
+        ticket.requester_contact.strip() if ticket.requester_contact
+        else (user.phone_extension if user and user.phone_extension else None)
+    )
+
     db_maintenance = models.Maintenance(
         equipment_id=ticket.equipment_id,
         type="corrective",
         description=ticket.description.strip(),
         opening_report=ticket.description.strip(),
         status="pending",
-        requester_name=ticket.requester_name.strip().lower(),
-        requester_sector=ticket.requester_sector.strip() if ticket.requester_sector else equipment.location,
-        requester_contact=ticket.requester_contact.strip() if ticket.requester_contact else None,
+        requester_name=requester_display,
+        requester_sector=requester_sector,
+        requester_contact=requester_contact,
         urgency=ticket.urgency or "medium",
         cost=0.0
     )

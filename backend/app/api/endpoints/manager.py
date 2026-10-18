@@ -349,8 +349,11 @@ def list_tenant_users(
             {
                 "id": u.id,
                 "username": u.username,
+                "full_name": u.full_name or u.username,
                 "email": u.email,
                 "role": u.role,
+                "sector": u.sector,
+                "phone_extension": u.phone_extension,
                 "is_active": u.is_active
             }
             for u in users
@@ -375,6 +378,9 @@ def create_tenant_user(
         email = user_in.get("email", "").strip()
         password = user_in.get("password", "").strip()
         role = user_in.get("role", "user")
+        full_name = user_in.get("full_name", "").strip() or None
+        sector = user_in.get("sector", "").strip() or None
+        phone_extension = user_in.get("phone_extension", "").strip() or None
 
         if not username or not password or not email:
             raise HTTPException(status_code=400, detail="Usuário, email e senha são obrigatórios.")
@@ -387,6 +393,9 @@ def create_tenant_user(
 
         new_user = TenantUser(
             username=username,
+            full_name=full_name,
+            sector=sector,
+            phone_extension=phone_extension,
             email=email,
             hashed_password=get_password_hash(password),
             role=role,
@@ -399,8 +408,11 @@ def create_tenant_user(
         return {
             "id": new_user.id,
             "username": new_user.username,
+            "full_name": new_user.full_name,
             "email": new_user.email,
             "role": new_user.role,
+            "sector": new_user.sector,
+            "phone_extension": new_user.phone_extension,
             "is_active": new_user.is_active
         }
     finally:
@@ -423,6 +435,13 @@ def update_tenant_user(
 
         if "email" in user_in and user_in["email"]:
             user.email = user_in["email"].strip()
+        if "full_name" in user_in:
+            user.full_name = user_in["full_name"].strip() if user_in["full_name"] else None
+        if "sector" in user_in:
+            user.sector = user_in["sector"].strip() if user_in["sector"] else None
+        if "phone_extension" in user_in:
+            user.phone_extension = user_in["phone_extension"].strip() if user_in["phone_extension"] else None
+
         if "role" in user_in and user_in["role"]:
             user.role = user_in["role"]
         if "is_active" in user_in:

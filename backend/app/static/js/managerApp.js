@@ -316,7 +316,8 @@ async function openTenantUsersModal(tenantId, tenantName, tenantSlug) {
         <table class="data-table" style="width:100%;">
           <thead>
             <tr>
-              <th>Usuário</th>
+              <th>Usuário / Nome</th>
+              <th>Setor / Ramal</th>
               <th>E-mail</th>
               <th>Função / Perfil</th>
               <th>Status</th>
@@ -326,7 +327,14 @@ async function openTenantUsersModal(tenantId, tenantName, tenantSlug) {
           <tbody>
             ${users.map(u => `
               <tr>
-                <td><strong>${u.username}</strong></td>
+                <td>
+                  <strong>${u.full_name || u.username}</strong>
+                  ${u.full_name && u.full_name !== u.username ? `<br><small style="color:#64748b;">@${u.username}</small>` : ''}
+                </td>
+                <td>
+                  ${u.sector ? `<span>🏢 ${u.sector}</span>` : '<span style="color:#94a3b8;">-</span>'}
+                  ${u.phone_extension ? `<br><small style="color:#64748b;">📞 Ramal: ${u.phone_extension}</small>` : ''}
+                </td>
                 <td>${u.email}</td>
                 <td><span class="badge badge-secondary">${u.role}</span></td>
                 <td><span class="badge ${u.is_active ? 'badge-success' : 'badge-danger'}">${u.is_active ? 'Ativo' : 'Inativo'}</span></td>
@@ -370,22 +378,42 @@ function openAddUserToTenantForm(tenantId, tenantName, onDone) {
   const formWrap = document.createElement('div');
   formWrap.style.cssText = 'position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); display:flex; justify-content:center; align-items:center; z-index:10000;';
   formWrap.innerHTML = `
-    <div style="background:#fff; border-radius:10px; width:90%; max-width:440px; padding:22px; box-shadow:0 10px 25px rgba(0,0,0,0.2);">
+    <div style="background:#fff; border-radius:10px; width:90%; max-width:480px; padding:22px; box-shadow:0 10px 25px rgba(0,0,0,0.2);">
       <h4 style="margin:0 0 12px 0;">➕ Cadastrar Usuário para ${tenantName}</h4>
       <div id="new-tuser-alert" style="display:none; padding:8px; border-radius:6px; margin-bottom:12px; font-size:0.85rem;"></div>
       <form id="form-new-tuser">
-        <div class="form-group" style="margin-bottom:10px;">
-          <label style="font-size:0.8rem;">Nome de Usuário *</label>
-          <input type="text" id="tuser-username" required style="width:100%; padding:8px;">
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+          <div class="form-group" style="margin-bottom:10px;">
+            <label style="font-size:0.8rem;">Nome de Usuário *</label>
+            <input type="text" id="tuser-username" required placeholder="Ex: joao.silva" style="width:100%; padding:8px;">
+          </div>
+          <div class="form-group" style="margin-bottom:10px;">
+            <label style="font-size:0.8rem;">Nome Completo</label>
+            <input type="text" id="tuser-fullname" placeholder="Ex: João da Silva" style="width:100%; padding:8px;">
+          </div>
         </div>
+
         <div class="form-group" style="margin-bottom:10px;">
           <label style="font-size:0.8rem;">E-mail *</label>
-          <input type="email" id="tuser-email" required style="width:100%; padding:8px;">
+          <input type="email" id="tuser-email" required placeholder="Ex: joao@hospital.com" style="width:100%; padding:8px;">
         </div>
+
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+          <div class="form-group" style="margin-bottom:10px;">
+            <label style="font-size:0.8rem;">Setor</label>
+            <input type="text" id="tuser-sector" placeholder="Ex: UTI Adulto / Bloco B" style="width:100%; padding:8px;">
+          </div>
+          <div class="form-group" style="margin-bottom:10px;">
+            <label style="font-size:0.8rem;">Ramal / Telefone</label>
+            <input type="text" id="tuser-phone" placeholder="Ex: Ramal 2305" style="width:100%; padding:8px;">
+          </div>
+        </div>
+
         <div class="form-group" style="margin-bottom:10px;">
           <label style="font-size:0.8rem;">Senha *</label>
           <input type="password" id="tuser-password" required minlength="4" style="width:100%; padding:8px;">
         </div>
+
         <div class="form-group" style="margin-bottom:16px;">
           <label style="font-size:0.8rem;">Perfil de Acesso</label>
           <select id="tuser-role" style="width:100%; padding:8px;">
@@ -417,6 +445,9 @@ function openAddUserToTenantForm(tenantId, tenantName, onDone) {
     try {
       await api.createTenantUser(tenantId, {
         username: formWrap.querySelector('#tuser-username').value.trim(),
+        full_name: formWrap.querySelector('#tuser-fullname').value.trim() || null,
+        sector: formWrap.querySelector('#tuser-sector').value.trim() || null,
+        phone_extension: formWrap.querySelector('#tuser-phone').value.trim() || null,
         email: formWrap.querySelector('#tuser-email').value.trim(),
         password: formWrap.querySelector('#tuser-password').value,
         role: formWrap.querySelector('#tuser-role').value

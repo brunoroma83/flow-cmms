@@ -152,6 +152,7 @@ export async function renderMaintenanceView(container) {
             <th>OS #</th>
             <th>Equipamento</th>
             <th>Tipo</th>
+            <th>Solicitante / Setor</th>
             <th>Descrição / Relato</th>
             <th>Status</th>
             <th>Técnico</th>
@@ -168,6 +169,15 @@ export async function renderMaintenanceView(container) {
                 <td><strong>OS-${item.id}</strong></td>
                 <td>${eqName}</td>
                 <td><span class="badge ${item.type === 'preventive' ? 'badge-info' : 'badge-warning'}">${item.type === 'preventive' ? 'Preventiva' : 'Corretiva'}</span></td>
+                <td>
+                  ${item.requester_name ? `
+                    <div style="font-weight:600; color:var(--text-main);">👤 ${item.requester_name}</div>
+                    <div style="font-size:0.75rem; color:var(--text-muted); line-height:1.2;">
+                      ${item.requester_sector ? `<span>🏢 ${item.requester_sector}</span>` : ''}
+                      ${item.requester_contact ? `<span> • 📞 ${item.requester_contact}</span>` : ''}
+                    </div>
+                  ` : `<span style="color:var(--text-muted); font-size:0.8rem;">OS Direta (Técnico)</span>`}
+                </td>
                 <td>
                   <div>${item.description}</div>
                   ${item.opening_report ? `<div style="font-size:0.75rem; color:var(--text-muted);"><em>Relato: ${item.opening_report.length > 45 ? item.opening_report.substring(0, 45) + '...' : item.opening_report}</em></div>` : ''}
@@ -306,6 +316,27 @@ function openNewOSModal(equipmentList, onSuccess) {
               <label>Relato de Abertura do Chamado</label>
               <textarea id="new-os-opening-report" rows="2" placeholder="Relato inicial do operador ou setor solicitante..."></textarea>
             </div>
+            <div class="form-group">
+              <label>Nome do Solicitante (Opcional)</label>
+              <input type="text" id="new-os-requester-name" placeholder="Ex: Dra. Mariana Lima">
+            </div>
+            <div class="form-group">
+              <label>Setor do Solicitante (Opcional)</label>
+              <input type="text" id="new-os-requester-sector" placeholder="Ex: Centro Obstétrico / Bloco 2">
+            </div>
+            <div class="form-group">
+              <label>Ramal / Telefone (Opcional)</label>
+              <input type="text" id="new-os-requester-contact" placeholder="Ex: Ramal 4031">
+            </div>
+            <div class="form-group">
+              <label>Nível de Urgência</label>
+              <select id="new-os-urgency">
+                <option value="low">Baixa</option>
+                <option value="medium" selected>Média</option>
+                <option value="high">Alta</option>
+                <option value="critical">Crítica</option>
+              </select>
+            </div>
           </div>
           <div class="modal-footer">
             <button type="button" class="btn btn-outline" id="btn-cancel-os">Cancelar</button>
@@ -337,7 +368,11 @@ function openNewOSModal(equipmentList, onSuccess) {
       start_time: parseISO(container.querySelector('#new-os-start-time').value),
       downtime_start: parseISO(container.querySelector('#new-os-downtime-start').value),
       description: container.querySelector('#new-os-description').value.trim(),
-      opening_report: container.querySelector('#new-os-opening-report').value.trim()
+      opening_report: container.querySelector('#new-os-opening-report').value.trim(),
+      requester_name: container.querySelector('#new-os-requester-name')?.value.trim() || null,
+      requester_sector: container.querySelector('#new-os-requester-sector')?.value.trim() || null,
+      requester_contact: container.querySelector('#new-os-requester-contact')?.value.trim() || null,
+      urgency: container.querySelector('#new-os-urgency')?.value || 'medium'
     };
 
     try {
@@ -373,6 +408,38 @@ async function openMaintDetailModal(item, equipmentList, onSuccess) {
           <button class="modal-close" id="modal-close-btn">✕</button>
         </div>
         <div class="modal-body">
+          <!-- Card de Identificação do Solicitante -->
+          ${item.requester_name ? `
+            <div style="background:#eff6ff; border:1px solid #bfdbfe; border-radius:8px; padding:12px 16px; margin-bottom:18px;">
+              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; border-bottom:1px solid #dbeafe; padding-bottom:6px;">
+                <span style="font-weight:700; color:#1e40af; font-size:0.85rem; text-transform:uppercase; letter-spacing:0.5px;">
+                  👤 Solicitante da Abertura do Chamado
+                </span>
+                <span class="badge ${item.urgency === 'critical' || item.urgency === 'high' ? 'badge-danger' : item.urgency === 'medium' ? 'badge-warning' : 'badge-info'}">
+                  Prioridade: ${item.urgency === 'critical' ? 'Crítica' : item.urgency === 'high' ? 'Alta' : item.urgency === 'medium' ? 'Média' : 'Baixa'}
+                </span>
+              </div>
+              <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap:12px; font-size:0.9rem;">
+                <div>
+                  <span style="color:#64748b; font-size:0.75rem; display:block;">Nome / Usuário</span>
+                  <strong style="color:#1e293b;">${item.requester_name}</strong>
+                </div>
+                <div>
+                  <span style="color:#64748b; font-size:0.75rem; display:block;">Setor Solicitante</span>
+                  <strong style="color:#1e293b;">🏢 ${item.requester_sector || 'Não informado'}</strong>
+                </div>
+                <div>
+                  <span style="color:#64748b; font-size:0.75rem; display:block;">Ramal / Contato</span>
+                  <strong style="color:#1e293b;">📞 ${item.requester_contact || 'Não informado'}</strong>
+                </div>
+              </div>
+            </div>
+          ` : `
+            <div style="background:#f8fafc; border:1px dashed #cbd5e1; border-radius:8px; padding:10px 14px; margin-bottom:18px; font-size:0.85rem; color:#64748b;">
+              ℹ️ Ordem gerada internamente pela equipe técnica (sem chamado de solicitante vinculado).
+            </div>
+          `}
+
           <form id="form-edit-os">
             <h4 style="margin-bottom:12px; font-size:1rem; color:var(--text-main);">📋 Informações da Ordem de Serviço</h4>
             <div class="form-grid" style="margin-bottom:20px;">

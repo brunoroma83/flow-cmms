@@ -6,6 +6,8 @@ class UserBase(BaseModel):
     email: str
     role: str = "user"
     full_name: Optional[str] = None
+    sector: Optional[str] = None
+    phone_extension: Optional[str] = None
 
 class UserCreate(UserBase):
     password: str
@@ -16,6 +18,8 @@ class UserUpdate(BaseModel):
     password: Optional[str] = None
     role: Optional[str] = None
     full_name: Optional[str] = None
+    sector: Optional[str] = None
+    phone_extension: Optional[str] = None
     is_active: Optional[bool] = None
 
 class User(UserBase):
@@ -24,14 +28,17 @@ class User(UserBase):
 
     model_config = ConfigDict(from_attributes=True)
 
+
 class LoginForm(BaseModel):
     username: str
     password: str
 
 class RequesterLoginRequest(BaseModel):
     username: str
+    full_name: Optional[str] = None
     sector: Optional[str] = None
     contact: Optional[str] = None
+
 
 class Token(BaseModel):
     access_token: str

@@ -41,6 +41,11 @@ def init_db():
         conn.execute(text("ALTER TABLE maintenance ADD COLUMN IF NOT EXISTS requester_sector VARCHAR(100);"))
         conn.execute(text("ALTER TABLE maintenance ADD COLUMN IF NOT EXISTS requester_contact VARCHAR(100);"))
         conn.execute(text("ALTER TABLE maintenance ADD COLUMN IF NOT EXISTS urgency VARCHAR(50) DEFAULT 'medium';"))
+        
+        # Users table columns
+        conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS full_name VARCHAR(255);"))
+        conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS sector VARCHAR(100);"))
+        conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS phone_extension VARCHAR(50);"))
         conn.commit()
 
 

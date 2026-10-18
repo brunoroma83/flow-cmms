@@ -78,6 +78,9 @@ def requester_login(data: schemas.RequesterLoginRequest, db: Session = Depends(g
         default_email = f"{clean_username}@solicitante.local"
         user = models.User(
             username=clean_username,
+            full_name=data.full_name.strip() if data.full_name else clean_username.title(),
+            sector=data.sector.strip() if data.sector else None,
+            phone_extension=data.contact.strip() if data.contact else None,
             email=default_email,
             hashed_password=get_password_hash("solicitante_auto_pwd"),
             role="solicitante",
@@ -89,6 +92,20 @@ def requester_login(data: schemas.RequesterLoginRequest, db: Session = Depends(g
     else:
         if not user.is_active:
             raise HTTPException(status_code=403, detail="Este usuário está inativo nesta unidade.")
+        # Se veio informações adicionais no login, atualiza
+        updated = False
+        if data.full_name and not user.full_name:
+            user.full_name = data.full_name.strip()
+            updated = True
+        if data.sector and not user.sector:
+            user.sector = data.sector.strip()
+            updated = True
+        if data.contact and not user.phone_extension:
+            user.phone_extension = data.contact.strip()
+            updated = True
+        if updated:
+            db.commit()
+            db.refresh(user)
 
     access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
     access_token = create_access_token(
@@ -101,12 +118,15 @@ def requester_login(data: schemas.RequesterLoginRequest, db: Session = Depends(g
         "user": {
             "id": user.id,
             "username": user.username,
+            "full_name": user.full_name or user.username,
             "email": user.email,
             "role": user.role,
-            "sector": data.sector,
-            "contact": data.contact
+            "sector": user.sector or data.sector,
+            "phone_extension": user.phone_extension or data.contact,
+            "contact": user.phone_extension or data.contact
         }
     }
+
 
 
 @router.post("/change-password")

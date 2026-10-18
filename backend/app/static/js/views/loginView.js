@@ -62,6 +62,15 @@ export function renderLoginView(container, onLoginSuccess) {
         </div>
 
         <div class="form-group">
+          <label for="req-fullname">Nome Completo (Opcional)</label>
+          <input
+            id="req-fullname"
+            type="text"
+            placeholder="Ex: Maria dos Santos"
+          />
+        </div>
+
+        <div class="form-group">
           <label for="req-sector">Setor / Leito / Sala (Opcional)</label>
           <input
             id="req-sector"
@@ -169,13 +178,14 @@ export function renderLoginView(container, onLoginSuccess) {
 
     const tenantSlug = reqForm.querySelector('#req-tenant').value.trim().toLowerCase();
     const username = reqForm.querySelector('#req-username').value.trim().toLowerCase();
+    const fullName = (reqForm.querySelector('#req-fullname')?.value || '').trim();
     const sector = reqForm.querySelector('#req-sector').value.trim();
     const contact = reqForm.querySelector('#req-contact').value.trim();
 
     setActiveTenant(tenantSlug);
 
     try {
-      await api.requesterLogin(username, sector, contact);
+      await api.requesterLogin(username, fullName, sector, contact);
       onLoginSuccess();
     } catch (err) {
       errorBox.textContent = err.message || 'Não foi possível acessar a unidade como solicitante.';

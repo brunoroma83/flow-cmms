@@ -26,7 +26,10 @@ def create_user(
         username=user.username,
         email=user.email,
         hashed_password=hashed_password,
-        full_name=user.full_name
+        role=user.role,
+        full_name=user.full_name,
+        sector=user.sector,
+        phone_extension=user.phone_extension
     )
     db.add(db_user)
     db.commit()

@@ -19,7 +19,10 @@ export async function renderRequesterView(container, initialSubTab = 'create') {
         </div>
         <div style="display:flex; align-items:center; gap:12px;">
           <div style="background: rgba(255,255,255,0.08); padding: 8px 14px; border-radius: 8px; font-size: 0.85rem;">
-            Solicitante: <strong style="color:#38bdf8;">${currentUser.username}</strong>
+            Solicitante: <strong style="color:#38bdf8;">${currentUser.full_name || currentUser.username}</strong>
+            ${currentUser.full_name && currentUser.full_name !== currentUser.username ? `<span style="color:#94a3b8; font-size:0.75rem;">(@${currentUser.username})</span>` : ''}
+            ${currentUser.sector ? `<span style="color:#cbd5e1; font-size:0.75rem; margin-left:6px;">• 🏢 ${currentUser.sector}</span>` : ''}
+            ${currentUser.phone_extension || currentUser.contact ? `<span style="color:#cbd5e1; font-size:0.75rem; margin-left:6px;">• 📞 Ramal: ${currentUser.phone_extension || currentUser.contact}</span>` : ''}
           </div>
         </div>
       </div>
@@ -165,7 +168,7 @@ export async function renderRequesterView(container, initialSubTab = 'create') {
               <label style="display:block; font-size:0.85rem; font-weight:600; margin-bottom:6px; color:#334155;">
                 Ramal ou Contato para Dúvidas
               </label>
-              <input type="text" id="ticket-contact" placeholder="Ex: Ramal 4022 ou celular da enfermaria" value="${currentUser.contact || ''}" style="width:100%; padding:10px; border:1px solid #cbd5e1; border-radius:8px; font-size:0.9rem;">
+              <input type="text" id="ticket-contact" placeholder="Ex: Ramal 4022 ou celular da enfermaria" value="${currentUser.phone_extension || currentUser.contact || ''}" style="width:100%; padding:10px; border:1px solid #cbd5e1; border-radius:8px; font-size:0.9rem;">
             </div>
           </div>
 

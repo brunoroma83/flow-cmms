@@ -87,3 +87,70 @@ def test_requester_login_passwordless_auto_register(client):
     relogin_data = res_relogin.json()
     assert relogin_data["user"]["username"] == username
     assert relogin_data["user"]["role"] == "solicitante"
+
+def test_requester_full_details_and_technician_visibility(client):
+    # 1. Login sem senha fornecendo nome completo, setor e ramal
+    res = client.post(
+        "/api/auth/requester-login",
+        headers={"X-Tenant-ID": "matriz"},
+        json={
+            "username": "dr_roberto",
+            "full_name": "Dr. Roberto de Souza",
+            "sector": "Centro Cirúrgico Bloco A",
+            "contact": "Ramal 3055"
+        }
+    )
+    assert res.status_code == 200
+    user_data = res.json()["user"]
+    assert user_data["full_name"] == "Dr. Roberto de Souza"
+    assert user_data["sector"] == "Centro Cirúrgico Bloco A"
+    assert user_data["phone_extension"] == "Ramal 3055"
+    token = res.json()["access_token"]
+
+    # 2. Obter equipamento
+    res_eq = client.get(
+        "/api/equipment/",
+        headers={"Authorization": f"Bearer {token}", "X-Tenant-ID": "matriz"}
+    )
+    eq_id = res_eq.json()[0]["id"]
+
+    # 3. Abertura do chamado
+    res_ticket = client.post(
+        "/api/maintenance/requester-ticket",
+        headers={"Authorization": f"Bearer {token}", "X-Tenant-ID": "matriz"},
+        json={
+            "equipment_id": eq_id,
+            "description": "Bisturi elétrico com falha intermitente na caneta.",
+            "requester_name": "dr_roberto",
+            "urgency": "high"
+        }
+    )
+    assert res_ticket.status_code == 200
+    ticket = res_ticket.json()
+    assert "Dr. Roberto de Souza" in ticket["requester_name"]
+    assert ticket["requester_sector"] == "Centro Cirúrgico Bloco A"
+    assert ticket["requester_contact"] == "Ramal 3055"
+    os_id = ticket["id"]
+
+    # 4. Na visão do técnico (GET /api/maintenance/), a OS traz nome, setor e ramal
+    res_maint = client.get(
+        "/api/maintenance/",
+        headers={"X-Tenant-ID": "matriz"}
+    )
+    assert res_maint.status_code == 200
+    all_os = res_maint.json()
+    target_os = next((o for o in all_os if o["id"] == os_id), None)
+    assert target_os is not None
+    assert "Dr. Roberto de Souza" in target_os["requester_name"]
+    assert target_os["requester_sector"] == "Centro Cirúrgico Bloco A"
+    assert target_os["requester_contact"] == "Ramal 3055"
+
+    # 5. O solicitante consegue consultar suas ordens pelo seu username
+    res_my = client.get(
+        "/api/maintenance/?requester_name=dr_roberto",
+        headers={"Authorization": f"Bearer {token}", "X-Tenant-ID": "matriz"}
+    )
+    assert res_my.status_code == 200
+    my_list = res_my.json()
+    assert any(o["id"] == os_id for o in my_list)
+
