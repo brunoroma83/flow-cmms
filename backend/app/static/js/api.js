@@ -241,7 +241,20 @@ export const api = {
     method: 'POST',
     body: JSON.stringify(entryData)
   }),
-  getMaintenanceEntries: (maintenanceId) => request(`/api/maintenance/${maintenanceId}/entries`),
+  requesterLogin: async (username, sector = '', contact = '') => {
+    const data = await request('/api/auth/requester-login', {
+      method: 'POST',
+      body: JSON.stringify({ username, sector, contact })
+    });
+    setToken(data.access_token);
+    setUser(data.user);
+    return data;
+  },
+  createRequesterTicket: (ticketData) => request('/api/maintenance/requester-ticket', {
+    method: 'POST',
+    body: JSON.stringify(ticketData)
+  }),
+  getMyRequests: (username) => request(`/api/maintenance/?requester_name=${encodeURIComponent(username)}`),
 
   // Inventory
   getInventory: () => request('/api/inventory/'),

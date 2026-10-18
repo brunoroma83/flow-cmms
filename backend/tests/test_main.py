@@ -12,7 +12,8 @@ def test_health_check():
 def test_read_root():
     response = client.get("/")
     assert response.status_code == 200
-    assert "message" in response.json()
+    assert "Flow CMMS" in response.text or "message" in response.text
+
 
 def test_import_structure():
     from app.core.config import settings

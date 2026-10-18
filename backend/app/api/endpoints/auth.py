@@ -56,10 +56,58 @@ def login_for_access_token(form_data: schemas.LoginForm, db: Session = Depends(g
     
     access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
     access_token = create_access_token(
-        data={"sub": user.username}, expires_delta=access_token_expires
+        data={"sub": user.username, "role": user.role}, expires_delta=access_token_expires
     )
     
     return {"access_token": access_token, "token_type": "bearer"}
+
+@router.post("/requester-login")
+def requester_login(data: schemas.RequesterLoginRequest, db: Session = Depends(get_db)):
+    """
+    Autenticação rápida e simplificada sem senha para o perfil Solicitante.
+    Se o usuário já existe na base da unidade, valida se está ativo.
+    Se não existe, auto-registra com papel 'solicitante' para máxima agilidade.
+    """
+    clean_username = data.username.strip().lower()
+    if not clean_username or len(clean_username) < 2:
+        raise HTTPException(status_code=400, detail="Nome de usuário deve ter pelo menos 2 caracteres.")
+
+    user = db.query(models.User).filter(models.User.username == clean_username).first()
+    if not user:
+        # Auto-registro transparente de solicitante
+        default_email = f"{clean_username}@solicitante.local"
+        user = models.User(
+            username=clean_username,
+            email=default_email,
+            hashed_password=get_password_hash("solicitante_auto_pwd"),
+            role="solicitante",
+            is_active=True
+        )
+        db.add(user)
+        db.commit()
+        db.refresh(user)
+    else:
+        if not user.is_active:
+            raise HTTPException(status_code=403, detail="Este usuário está inativo nesta unidade.")
+
+    access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
+    access_token = create_access_token(
+        data={"sub": user.username, "role": user.role}, expires_delta=access_token_expires
+    )
+
+    return {
+        "access_token": access_token,
+        "token_type": "bearer",
+        "user": {
+            "id": user.id,
+            "username": user.username,
+            "email": user.email,
+            "role": user.role,
+            "sector": data.sector,
+            "contact": data.contact
+        }
+    }
+
 
 @router.post("/change-password")
 def change_password(

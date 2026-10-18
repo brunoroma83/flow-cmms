@@ -37,7 +37,12 @@ def init_db():
         conn.execute(text("ALTER TABLE maintenance ADD COLUMN IF NOT EXISTS completion_time TIMESTAMP;"))
         conn.execute(text("ALTER TABLE maintenance ADD COLUMN IF NOT EXISTS downtime_start TIMESTAMP;"))
         conn.execute(text("ALTER TABLE maintenance ADD COLUMN IF NOT EXISTS downtime_end TIMESTAMP;"))
+        conn.execute(text("ALTER TABLE maintenance ADD COLUMN IF NOT EXISTS requester_name VARCHAR(100);"))
+        conn.execute(text("ALTER TABLE maintenance ADD COLUMN IF NOT EXISTS requester_sector VARCHAR(100);"))
+        conn.execute(text("ALTER TABLE maintenance ADD COLUMN IF NOT EXISTS requester_contact VARCHAR(100);"))
+        conn.execute(text("ALTER TABLE maintenance ADD COLUMN IF NOT EXISTS urgency VARCHAR(50) DEFAULT 'medium';"))
         conn.commit()
+
 
     Base.metadata.create_all(bind=engine)
     

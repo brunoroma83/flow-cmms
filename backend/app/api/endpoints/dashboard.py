@@ -65,8 +65,14 @@ def get_dashboard_indicators(db: Session = Depends(get_db)):
             "uptime": uptime,
             "mttr": mttr,
             "mtbf": mtbf
+        },
+        "indicators": {
+            "uptime": uptime,
+            "mttr": mttr,
+            "mtbf": mtbf
         }
     }
+
 
 @router.get("/reports")
 def get_dashboard_reports(db: Session = Depends(get_db)):

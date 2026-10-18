@@ -19,10 +19,15 @@ class Maintenance(Base):
     downtime_end = Column(DateTime, nullable=True)
     status = Column(String(50), default="pending")  # pending, in_progress, completed, cancelled
     technician = Column(String(255), nullable=True)
+    requester_name = Column(String(100), nullable=True, index=True)
+    requester_sector = Column(String(100), nullable=True)
+    requester_contact = Column(String(100), nullable=True)
+    urgency = Column(String(50), default="medium")  # low, medium, high, critical
     cost = Column(Float, default=0.0)
     notes = Column(Text, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
     
     # Relationships
     equipment = relationship("Equipment", back_populates="maintenance_records")

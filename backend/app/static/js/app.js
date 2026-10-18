@@ -7,6 +7,8 @@ import { renderInventoryView } from './views/inventoryView.js';
 import { renderReportsView } from './views/reportsView.js';
 import { renderAdminView } from './views/adminView.js';
 import { renderClientsManagerView } from './views/clientsManagerView.js';
+import { renderRequesterView } from './views/requesterView.js';
+
 
 
 // DOM Containers
@@ -130,13 +132,17 @@ initSidebarState();
 async function router() {
   const token = getToken();
   const user = getUser();
-  const hash = window.location.hash || '#dashboard';
+  const isRequester = user && user.role === 'solicitante';
+  const defaultHash = isRequester ? '#requester-create' : '#dashboard';
+  const hash = window.location.hash || defaultHash;
 
   if (!token) {
     authContainer.style.display = 'flex';
     appContainer.style.display = 'none';
     renderLoginView(authContainer, () => {
-      window.location.hash = '#dashboard';
+      const loggedUser = getUser();
+      const nextHash = loggedUser && loggedUser.role === 'solicitante' ? '#requester-create' : '#dashboard';
+      window.location.hash = nextHash;
       router();
     });
     return;
@@ -156,7 +162,17 @@ async function router() {
   const uname = user ? user.username : 'admin';
   userAvatar.textContent = uname.charAt(0).toUpperCase();
   userName.textContent = uname.charAt(0).toUpperCase() + uname.slice(1);
-  userRole.textContent = user && user.role ? `Nível: ${user.role}` : 'Engenharia Clínica';
+  userRole.textContent = isRequester 
+    ? 'Perfil: Solicitante' 
+    : (user && user.role ? `Nível: ${user.role}` : 'Engenharia Clínica');
+
+  // Adapt Sidebar Links based on User Role
+  document.querySelectorAll('.requester-only').forEach(el => {
+    el.style.display = isRequester ? 'flex' : 'none';
+  });
+  document.querySelectorAll('.tech-admin-only').forEach(el => {
+    el.style.display = isRequester ? 'none' : 'flex';
+  });
 
   // Highlight Sidebar Link
   document.querySelectorAll('.nav-item').forEach(item => {
@@ -170,23 +186,43 @@ async function router() {
 
   // Render Target View
   switch (hash) {
+    // Rotas do Solicitante
+    case '#requester-create':
+      pageTitle.textContent = 'Abertura de Chamado';
+      await renderRequesterView(appContent, 'create');
+      break;
+    case '#requester-list':
+      pageTitle.textContent = 'Minhas Solicitações';
+      await renderRequesterView(appContent, 'list');
+      break;
+    case '#requester-assets':
+      pageTitle.textContent = 'Consulta de Ativos';
+      await renderRequesterView(appContent, 'assets');
+      break;
+
+    // Rotas Administrativas e Técnicas
     case '#assets':
+      if (isRequester) { window.location.hash = '#requester-assets'; return; }
       pageTitle.textContent = 'Ativos Médicos';
       await renderAssetsView(appContent);
       break;
     case '#maintenance':
+      if (isRequester) { window.location.hash = '#requester-list'; return; }
       pageTitle.textContent = 'Ordens de Serviço';
       await renderMaintenanceView(appContent);
       break;
     case '#inventory':
+      if (isRequester) { window.location.hash = '#requester-create'; return; }
       pageTitle.textContent = 'Estoque de Peças';
       await renderInventoryView(appContent);
       break;
     case '#reports':
+      if (isRequester) { window.location.hash = '#requester-create'; return; }
       pageTitle.textContent = 'Relatórios Operacionais';
       await renderReportsView(appContent);
       break;
     case '#admin':
+      if (isRequester) { window.location.hash = '#requester-create'; return; }
       pageTitle.textContent = 'Configurações do Usuário';
       await renderAdminView(appContent);
       break;
@@ -196,13 +232,17 @@ async function router() {
       await renderClientsManagerView(appContent);
       break;
     case '#dashboard':
-
     default:
+      if (isRequester) {
+        window.location.hash = '#requester-create';
+        return;
+      }
       pageTitle.textContent = 'Dashboard Operacional';
       await renderDashboardView(appContent);
       break;
   }
 }
+
 
 // Close mobile sidebar on nav click
 document.querySelectorAll('.nav-item').forEach(item => {

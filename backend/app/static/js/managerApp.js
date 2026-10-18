@@ -389,11 +389,13 @@ function openAddUserToTenantForm(tenantId, tenantName, onDone) {
         <div class="form-group" style="margin-bottom:16px;">
           <label style="font-size:0.8rem;">Perfil de Acesso</label>
           <select id="tuser-role" style="width:100%; padding:8px;">
-            <option value="technician" selected>Técnico / Operador</option>
+            <option value="solicitante" selected>Solicitante (Apenas Chamados & Consulta)</option>
+            <option value="technician">Técnico / Operador</option>
             <option value="admin">Administrador Local da Unidade</option>
             <option value="user">Visualizador / Usuário</option>
           </select>
         </div>
+
         <div style="display:flex; justify-content:flex-end; gap:8px;">
           <button type="button" id="btn-cancel-tuser" class="btn btn-secondary">Cancelar</button>
           <button type="submit" id="btn-save-tuser" class="btn btn-primary">Salvar Usuário</button>

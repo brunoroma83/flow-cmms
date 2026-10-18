@@ -28,9 +28,15 @@ class LoginForm(BaseModel):
     username: str
     password: str
 
+class RequesterLoginRequest(BaseModel):
+    username: str
+    sector: Optional[str] = None
+    contact: Optional[str] = None
+
 class Token(BaseModel):
     access_token: str
     token_type: str
+
 
 class LoginResponse(BaseModel):
     user: User

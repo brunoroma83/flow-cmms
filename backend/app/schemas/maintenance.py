@@ -19,7 +19,7 @@ class MaintenanceEntry(MaintenanceEntryBase):
 
 class MaintenanceBase(BaseModel):
     equipment_id: int
-    type: str  # preventive, corrective
+    type: str = "corrective"  # preventive, corrective
     description: Optional[str] = None
     opening_report: Optional[str] = None
     scheduled_date: Optional[datetime] = None
@@ -30,11 +30,23 @@ class MaintenanceBase(BaseModel):
     downtime_end: Optional[datetime] = None
     status: str = "pending"
     technician: Optional[str] = None
+    requester_name: Optional[str] = None
+    requester_sector: Optional[str] = None
+    requester_contact: Optional[str] = None
+    urgency: Optional[str] = "medium"
     cost: Optional[float] = 0.0
     notes: Optional[str] = None
 
 class MaintenanceCreate(MaintenanceBase):
     pass
+
+class RequesterTicketCreate(BaseModel):
+    equipment_id: int
+    description: str
+    requester_name: str
+    requester_sector: Optional[str] = None
+    requester_contact: Optional[str] = None
+    urgency: Optional[str] = "medium"
 
 class MaintenanceUpdate(BaseModel):
     equipment_id: Optional[int] = None
@@ -49,6 +61,10 @@ class MaintenanceUpdate(BaseModel):
     downtime_end: Optional[datetime] = None
     status: Optional[str] = None
     technician: Optional[str] = None
+    requester_name: Optional[str] = None
+    requester_sector: Optional[str] = None
+    requester_contact: Optional[str] = None
+    urgency: Optional[str] = None
     cost: Optional[float] = None
     notes: Optional[str] = None
 

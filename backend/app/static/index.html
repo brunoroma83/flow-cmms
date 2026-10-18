@@ -44,31 +44,47 @@
         </div>
 
         <nav class="sidebar-nav">
-          <a href="#dashboard" class="nav-item" id="nav-dashboard">
+          <!-- Links para Solicitante -->
+          <a href="#requester-create" class="nav-item requester-only" id="nav-requester-create" style="display:none;">
+            <span class="nav-icon">➕</span>
+            <span class="nav-label">Abrir Chamado</span>
+          </a>
+          <a href="#requester-list" class="nav-item requester-only" id="nav-requester-list" style="display:none;">
+            <span class="nav-icon">📋</span>
+            <span class="nav-label">Minhas Solicitações</span>
+          </a>
+          <a href="#requester-assets" class="nav-item requester-only" id="nav-requester-assets" style="display:none;">
+            <span class="nav-icon">🩺</span>
+            <span class="nav-label">Ativos Cadastrados</span>
+          </a>
+
+          <!-- Links para Técnico e Administrador -->
+          <a href="#dashboard" class="nav-item tech-admin-only" id="nav-dashboard">
             <span class="nav-icon">📊</span>
             <span class="nav-label">Dashboard</span>
           </a>
-          <a href="#assets" class="nav-item" id="nav-assets">
+          <a href="#assets" class="nav-item tech-admin-only" id="nav-assets">
             <span class="nav-icon">🩺</span>
             <span class="nav-label">Ativos Médicos</span>
           </a>
-          <a href="#maintenance" class="nav-item" id="nav-maintenance">
+          <a href="#maintenance" class="nav-item tech-admin-only" id="nav-maintenance">
             <span class="nav-icon">🔧</span>
             <span class="nav-label">Manutenções</span>
           </a>
-          <a href="#inventory" class="nav-item" id="nav-inventory">
+          <a href="#inventory" class="nav-item tech-admin-only" id="nav-inventory">
             <span class="nav-icon">📦</span>
             <span class="nav-label">Estoque de Peças</span>
           </a>
-          <a href="#reports" class="nav-item" id="nav-reports">
+          <a href="#reports" class="nav-item tech-admin-only" id="nav-reports">
             <span class="nav-icon">📈</span>
             <span class="nav-label">Relatórios</span>
           </a>
-          <a href="#admin" class="nav-item" id="nav-admin">
+          <a href="#admin" class="nav-item tech-admin-only" id="nav-admin">
             <span class="nav-icon">⚙️</span>
             <span class="nav-label">Configurações</span>
           </a>
         </nav>
+
 
         <div class="sidebar-footer">
           <div class="user-profile">

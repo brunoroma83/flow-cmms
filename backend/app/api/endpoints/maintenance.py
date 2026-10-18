@@ -11,13 +11,44 @@ def read_maintenance(
     skip: int = 0,
     limit: int = 100,
     equipment_id: Optional[int] = None,
+    requester_name: Optional[str] = None,
     db: Session = Depends(get_db)
 ):
     query = db.query(models.Maintenance)
     if equipment_id:
         query = query.filter(models.Maintenance.equipment_id == equipment_id)
+    if requester_name:
+        query = query.filter(models.Maintenance.requester_name == requester_name.strip().lower())
     maintenance = query.order_by(models.Maintenance.created_at.desc()).offset(skip).limit(limit).all()
     return maintenance
+
+@router.post("/requester-ticket", response_model=schemas.Maintenance)
+def create_requester_ticket(ticket: schemas.RequesterTicketCreate, db: Session = Depends(get_db)):
+    """
+    Endpoint dedicado para abertura rápida de chamados pelo solicitante.
+    """
+    # Verificar se o equipamento existe
+    equipment = db.query(models.Equipment).filter(models.Equipment.id == ticket.equipment_id).first()
+    if not equipment:
+        raise HTTPException(status_code=404, detail="Equipamento selecionado não foi encontrado.")
+
+    db_maintenance = models.Maintenance(
+        equipment_id=ticket.equipment_id,
+        type="corrective",
+        description=ticket.description.strip(),
+        opening_report=ticket.description.strip(),
+        status="pending",
+        requester_name=ticket.requester_name.strip().lower(),
+        requester_sector=ticket.requester_sector.strip() if ticket.requester_sector else equipment.location,
+        requester_contact=ticket.requester_contact.strip() if ticket.requester_contact else None,
+        urgency=ticket.urgency or "medium",
+        cost=0.0
+    )
+    db.add(db_maintenance)
+    db.commit()
+    db.refresh(db_maintenance)
+    return db_maintenance
+
 
 @router.post("/", response_model=schemas.Maintenance)
 def create_maintenance(maintenance: schemas.MaintenanceCreate, db: Session = Depends(get_db)):
