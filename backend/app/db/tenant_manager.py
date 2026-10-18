@@ -29,6 +29,8 @@ class TenantDatabaseManager:
         new_path = f"/{db_name}"
         return urlunparse((parsed.scheme, parsed.netloc, new_path, parsed.params, parsed.query, parsed.fragment))
 
+    _migrated_dbs = set()
+
     @classmethod
     def get_engine(cls, db_name: str):
         if db_name not in cls._engines:
@@ -40,7 +42,13 @@ class TenantDatabaseManager:
             )
             cls._engines[db_name] = engine
             cls._sessionmakers[db_name] = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+            
+            # Ensure schema migrations on first engine initialization
+            if db_name not in cls._migrated_dbs:
+                cls._migrated_dbs.add(db_name)
+                cls.ensure_tenant_schema(db_name)
         return cls._engines[db_name]
+
 
     @classmethod
     def get_session(cls, db_name: str) -> Session:
@@ -112,9 +120,38 @@ class TenantDatabaseManager:
     @classmethod
     def provision_tenant_schema(cls, db_name: str):
         """
-        Creates all tables on the newly created tenant database.
+        Creates all tables on the newly created tenant database and ensures migrations.
         """
         engine = cls.get_engine(db_name)
         # Import models so Base has all tenant table definitions
         from app.models import equipment, maintenance, user, report, inventory, traceability
         Base.metadata.create_all(bind=engine)
+        cls.ensure_tenant_schema(db_name)
+
+    @classmethod
+    def ensure_tenant_schema(cls, db_name: str):
+        """
+        Ensures all columns exist in an existing tenant database (auto-migration).
+        """
+        engine = cls.get_engine(db_name)
+        try:
+            with engine.connect() as conn:
+                # Equipment columns
+                conn.execute(text("ALTER TABLE equipment ADD COLUMN IF NOT EXISTS anvisa_register VARCHAR(100);"))
+                conn.execute(text("ALTER TABLE equipment ADD COLUMN IF NOT EXISTS equipment_type VARCHAR(100);"))
+                conn.execute(text("ALTER TABLE equipment ADD COLUMN IF NOT EXISTS is_deleted BOOLEAN DEFAULT FALSE;"))
+                
+                # Maintenance columns
+                conn.execute(text("ALTER TABLE maintenance ADD COLUMN IF NOT EXISTS opening_report TEXT;"))
+                conn.execute(text("ALTER TABLE maintenance ADD COLUMN IF NOT EXISTS start_time TIMESTAMP;"))
+                conn.execute(text("ALTER TABLE maintenance ADD COLUMN IF NOT EXISTS completion_time TIMESTAMP;"))
+                conn.execute(text("ALTER TABLE maintenance ADD COLUMN IF NOT EXISTS downtime_start TIMESTAMP;"))
+                conn.execute(text("ALTER TABLE maintenance ADD COLUMN IF NOT EXISTS downtime_end TIMESTAMP;"))
+                conn.execute(text("ALTER TABLE maintenance ADD COLUMN IF NOT EXISTS requester_name VARCHAR(100);"))
+                conn.execute(text("ALTER TABLE maintenance ADD COLUMN IF NOT EXISTS requester_sector VARCHAR(100);"))
+                conn.execute(text("ALTER TABLE maintenance ADD COLUMN IF NOT EXISTS requester_contact VARCHAR(100);"))
+                conn.execute(text("ALTER TABLE maintenance ADD COLUMN IF NOT EXISTS urgency VARCHAR(50) DEFAULT 'medium';"))
+                conn.commit()
+        except Exception as e:
+            print(f"⚠️ Warning: Auto-migration for tenant database '{db_name}' notice: {e}")
+
