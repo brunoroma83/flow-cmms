@@ -155,6 +155,10 @@ def test_requester_full_details_and_technician_visibility(client):
     assert any(o["id"] == os_id for o in my_list)
 
 def test_requester_direct_url_token_login_and_token_regeneration(client):
+    import uuid
+    uname = f"pedro_{uuid.uuid4().hex[:6]}"
+    uemail = f"{uname}@hospitalmatriz.com"
+
     # 1. Login do superadmin no gerenciador
     res_mgr = client.post(
         "/api/manager/auth/token",
@@ -174,9 +178,9 @@ def test_requester_direct_url_token_login_and_token_regeneration(client):
         f"/api/manager/tenants/{tenant_id}/users",
         headers={"Authorization": f"Bearer {mgr_token}"},
         json={
-            "username": "enfermeiro_pedro",
+            "username": uname,
             "full_name": "Pedro Alcantara",
-            "email": "pedro@hospitalmatriz.com",
+            "email": uemail,
             "password": "temporary_password_123",
             "role": "solicitante",
             "sector": "Pronto Socorro Adulto",
@@ -198,7 +202,7 @@ def test_requester_direct_url_token_login_and_token_regeneration(client):
     assert res_token_login.status_code == 200
     login_data = res_token_login.json()
     assert "access_token" in login_data
-    assert login_data["user"]["username"] == "enfermeiro_pedro"
+    assert login_data["user"]["username"] == uname
     assert login_data["user"]["full_name"] == "Pedro Alcantara"
     assert login_data["user"]["role"] == "solicitante"
     assert login_data["user"]["sector"] == "Pronto Socorro Adulto"
@@ -235,6 +239,6 @@ def test_requester_direct_url_token_login_and_token_regeneration(client):
         json={"token": new_token}
     )
     assert res_new_login.status_code == 200
-    assert res_new_login.json()["user"]["username"] == "enfermeiro_pedro"
+    assert res_new_login.json()["user"]["username"] == uname
 
 
