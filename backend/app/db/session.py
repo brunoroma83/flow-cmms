@@ -41,7 +41,7 @@ def get_db(
         if not tenant_slug:
             tenant_slug = request.headers.get("X-Tenant-ID") or request.headers.get("x-tenant-id")
         if not tenant_slug:
-            tenant_slug = request.query_params.get("tenant_id") or request.query_params.get("tenant")
+            tenant_slug = request.query_params.get("s") or request.query_params.get("tenant_id") or request.query_params.get("tenant")
         if not tenant_slug:
             # Check if Authorization bearer token contains tenant_slug (e.g. MCP Token)
             auth_header = request.headers.get("Authorization") or request.headers.get("authorization")

@@ -8,6 +8,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 
 from app.api.endpoints import equipment, maintenance, dashboard, auth, reports, inventory, traceability, manager
+from app.mcp import create_mcp_app
 from app.core.config import settings
 from app.db.session import engine
 from app.models.base import Base
@@ -41,6 +42,9 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Mount MCP (Model Context Protocol) Server for AI Agents
+app.mount("/mcp", create_mcp_app(), name="mcp")
+
 # Include API REST routers
 app.include_router(manager.router, prefix="/api/manager", tags=["manager"])
 app.include_router(equipment.router, prefix="/api/equipment", tags=["equipment"])
@@ -55,6 +59,18 @@ app.include_router(traceability.router, prefix="/api/traceability", tags=["trace
 @app.get("/health")
 def health_check():
     return {"status": "healthy"}
+
+@app.get("/mcp")
+def mcp_root():
+    return {
+        "status": "online",
+        "service": "Flow-CMMS MCP Server",
+        "protocol": "Model Context Protocol (SSE transport)",
+        "endpoints": {
+            "sse": "/mcp/sse?s={slug_hospital}",
+            "messages": "/mcp/messages?session_id={session_id}&s={slug_hospital}"
+        }
+    }
 
 # Serve Pages & Static Files
 static_dir = Path(__file__).parent / "static"
